@@ -3,13 +3,16 @@ using Shared.Caching.Builder;
 using Shared.Composition.Helper;
 using Shared.Composition.Options;
 using Shared.ErrorHandling.Builder;
+using Shared.FeatureManagement.Builder;
 using Shared.Health.Builder;
 using Shared.Logging.Builder;
 using Shared.Networking.Builder;
+using Shared.RateLimiting.Builder;
 using Shared.Security.Builder;
 using Shared.Serialization.Builder;
 using Shared.Swagger.Builder;
 using Shared.Telemetry.Builder;
+using Shared.WebPerformance.Builder;
 namespace Shared.Composition.Builder
 {
     public static class CompositionExtensions
@@ -48,6 +51,18 @@ namespace Shared.Composition.Builder
             // Security
             if (rootOptions.Security is not null)
                 services.AddSharedSecurity(opt => CompositionHelper.CopyProperties(rootOptions.Security, opt));
+
+            // Rate Limiting
+            if (rootOptions.RateLimiting is not null)
+                services.AddSharedRateLimiting(opt => CompositionHelper.CopyProperties(rootOptions.RateLimiting, opt));
+
+            // Web Performance (Output Caching)
+            if (rootOptions.WebPerformance is not null)
+                services.AddSharedWebPerformance(opt => CompositionHelper.CopyProperties(rootOptions.WebPerformance, opt));
+
+            // Feature Management
+            if (rootOptions.FeatureManagement is not null)
+                services.AddSharedFeatureManagement(opt => CompositionHelper.CopyProperties(rootOptions.FeatureManagement, opt));
 
             // OpenAPI/Swagger
             if (rootOptions.OpenApi is not null)

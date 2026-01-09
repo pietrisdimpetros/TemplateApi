@@ -1,4 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.FeatureManagement;
+using Microsoft.FeatureManagement.Mvc;
 using Shared.Caching.Services;
 using System.Text.Json;
 using TemplateApi.Models;
@@ -7,6 +11,9 @@ namespace TemplateApi.Controllers
 {
     [ApiController]
     [Route("[controller]")]
+    [EnableRateLimiting("Standard")]
+    [OutputCache(Duration = 10)] // Caches this specific endpoint for 10 seconds
+    //[OutputCache(NoStore = true)] // Explicitly disable caching for this endpoint
     public class WeatherForecastController(
      ILogger<WeatherForecastController> logger,
      ICacheService cache, // Injected from Shared.Caching
@@ -24,23 +31,41 @@ namespace TemplateApi.Controllers
         [HttpGet]
         public IEnumerable<WeatherForecast> Get()
         {
-            logger.LogInformation("Getting weather forecast at {Time}", DateTime.UtcNow);
-
             // Simulate some logic for Telemetry tracing
             using (var activity = System.Diagnostics.Activity.Current?.Source.StartActivity("CalculateForecast"))
             {
                 activity?.AddTag("forecast.count", 5);
 
-                return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+                return [.. Enumerable.Range(1, 5).Select(index => new WeatherForecast
                 {
                     Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
                     TemperatureC = Random.Shared.Next(-20, 55),
                     Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-                })
-                .ToArray();
+                })];
             }
         }
+        // Requires BOTH "NewGraphCheck" AND "BetaDashboard" to be true
+        [HttpGet("advanced-dashboard")]
+        [FeatureGate("NewGraphCheck", "BetaDashboard")]
+        public IActionResult GetAdvancedDashboard()
+        {
+            return Ok("Power user access granted.");
+        }
 
+        // Requires EITHER "BetaDashboard" OR "PreviewAccess"
+        [HttpGet("preview")]
+        [FeatureGate(RequirementType.Any, "BetaDashboard", "PreviewAccess")]
+        public IActionResult GetPreview()
+        {
+            return Ok("You have preview access.");
+        }
+
+        [HttpGet("graph-check")]
+        [FeatureGate("NewGraphCheck")] // Requires "NewGraphCheck": true
+        public IActionResult GetGraphCheck()
+        {
+            return Ok("You have access.");
+        }
         /// <summary>
         /// Verifies Shared.Caching (Redis) connectivity.
         /// </summary>

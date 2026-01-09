@@ -1,13 +1,16 @@
 ﻿using Shared.Caching.Options;
 using Shared.ErrorHandling.Options;
+using Shared.FeatureManagement.Options;
 using Shared.Health.Options;
 using Shared.Logging.Options;
 using Shared.Networking.Options;
+using Shared.RateLimiting.Options;
 using Shared.Resilience.Options;
 using Shared.Security.Options;
 using Shared.Serialization.Options;
 using Shared.Swagger.Options;
 using Shared.Telemetry.Options;
+using Shared.WebPerformance.Options;
 
 namespace Shared.Composition.Options
 {
@@ -19,23 +22,17 @@ namespace Shared.Composition.Options
     public sealed class SharedInfrastructureOptions
     {
         public CachingOptions? Caching { get; set; }
-
         public LoggingOptions? Logging { get; set; }
-
         public ErrorHandlingOptions? ErrorHandling { get; set; }
-
         public TelemetryOptions? Telemetry { get; set; }
-
         public OpenApiOptions? OpenApi { get; set; }
-
         public SerializationOptions? Serialization { get; set; }
-
         public SecurityOptions? Security { get; set; }
-
         public NetworkingOptions? Networking { get; set; }
-
         public HealthOptions? Health { get; set; }
-
         public ResilienceOptions? Resilience { get; set; }
+        public RateLimitingOptions? RateLimiting { get; set; }
+        public WebPerformanceOptions? WebPerformance { get; set; }
+        public FeatureManagementOptions? FeatureManagement { get; set; }
     }
 }

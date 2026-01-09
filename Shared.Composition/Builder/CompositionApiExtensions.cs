@@ -3,7 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Shared.Composition.Options;
 using Shared.Health.Builder;
+using Shared.RateLimiting.Builder;
 using Shared.Swagger.Builder;
+using Shared.WebPerformance.Builder;
 namespace Shared.Composition.Builder
 {
     public static class CompositionApiExtensions
@@ -37,11 +39,18 @@ namespace Shared.Composition.Builder
                 app.UseAuthorization();
             }
 
-            // 5. Health Checks
+            // 5. Rate Limiting
+            if (options.RateLimiting is not null)
+                app.UseSharedRateLimiting();
+            // 6. Rate Limiting
+            if (options.WebPerformance is not null)
+                app.UseSharedWebPerformance();
+
+            // 7. Health Checks
             if (options.Health is not null)
                 app.UseSharedHealth();
 
-            // 6. Request Logging (Optional)
+            // 8. Request Logging (Optional)
             // If you had a middleware for logging requests in Shared.Logging, it would go here.
             // if (options.Logging != null) app.UseSerilogRequestLogging(); 
 

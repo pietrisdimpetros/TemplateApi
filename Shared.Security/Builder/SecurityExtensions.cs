@@ -24,7 +24,6 @@ namespace Shared.Security.Builder
             configure(options);
 
             services.AddSingleton(options);
-
             // 2. Configure Authentication (JWT)
             services
                 .AddAuthentication(defaultScheme: JwtBearerDefaults.AuthenticationScheme)

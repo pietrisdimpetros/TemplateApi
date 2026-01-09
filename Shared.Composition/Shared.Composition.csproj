@@ -24,6 +24,9 @@
 		<ProjectReference Include="..\Shared.Security\Shared.Security.csproj" />
 		<ProjectReference Include="..\Shared.Serialization\Shared.Serialization.csproj" />
 		<ProjectReference Include="..\Shared.Telemetry\Shared.Telemetry.csproj" />
+		<ProjectReference Include="..\Shared.RateLimiting\Shared.RateLimiting.csproj" />
+		<ProjectReference Include="..\Shared.WebPerformance\Shared.WebPerformance.csproj" />
+		<ProjectReference Include="..\Shared.FeatureManagement\Shared.FeatureManagement.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -1,6 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.DependencyInjection;
 using Shared.Caching.Options;
 using Shared.Caching.Services;
+using StackExchange.Redis;
 namespace Shared.Caching.Builder
 {
     public static class CachingExtensions
@@ -32,6 +34,21 @@ namespace Shared.Caching.Builder
 
             // 3. Register the Typed Cache Service
             services.AddSingleton<ICacheService, CacheService>();
+
+            // 4. Configure Distributed Data Protection (Redis)
+            if (options.DataProtection != null && options.DataProtection.Enabled)
+            {
+                var redisConnStr = !string.IsNullOrEmpty(options.DataProtection.ConnectionStringOverride)
+                    ? options.DataProtection.ConnectionStringOverride
+                    : options.ConnectionString;
+
+                var redis = ConnectionMultiplexer.Connect(redisConnStr);
+
+                services.AddDataProtection()
+                    .SetApplicationName(options.DataProtection.ApplicationName)
+                    .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
+            }
+
 
             return services;
         }

@@ -19,5 +19,11 @@
         /// Default is 60 minutes.
         /// </summary>
         public int DefaultExpirationMinutes { get; set; } = 60;
+
+        /// <summary>
+        /// Configuration for Distributed Data Protection.
+        /// If null, Data Protection logic is skipped in this library.
+        /// </summary>
+        public CachingDataProtectionOptions? DataProtection { get; set; }
     }
 }

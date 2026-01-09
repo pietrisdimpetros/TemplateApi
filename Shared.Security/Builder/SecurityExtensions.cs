@@ -29,6 +29,7 @@ namespace Shared.Security.Builder
                 .AddAuthentication(defaultScheme: JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(jwtOptions =>
                 {
+                    jwtOptions.MapInboundClaims = false;
                     jwtOptions.Authority = options.Authority;
                     jwtOptions.Audience = options.Audience;
                     jwtOptions.RequireHttpsMetadata = true; // Strict HTTPS

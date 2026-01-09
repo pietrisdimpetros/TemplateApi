@@ -26,7 +26,7 @@ namespace Shared.Networking.Builder
             // 1. Configure the Client
             var clientBuilder = services.AddHttpClient(ClientName, client =>
             {
-                client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+                client.Timeout = Timeout.InfiniteTimeSpan;
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 client.DefaultRequestHeaders.UserAgent.ParseAdd(options.UserAgent);
             });

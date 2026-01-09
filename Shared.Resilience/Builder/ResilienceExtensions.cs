@@ -37,10 +37,14 @@ namespace Shared.Resilience.Builder
 
                 // C. Circuit Breaker (Inner Layer)
                 // Stops attempts if the downstream service is consistently failing.
+                var attemptTimeoutSeconds = options.TotalRequestTimeoutSeconds / 2.0;
+
                 pipelineBuilder.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
                 {
-                    SamplingDuration = TimeSpan.FromSeconds(options.TotalRequestTimeoutSeconds * 2),
-                    FailureRatio = 0.5, // Break if 50% of requests fail
+                    // Use the calculated attempt timeout for the sampling duration base
+                    SamplingDuration = TimeSpan.FromSeconds(attemptTimeoutSeconds * 2),
+
+                    FailureRatio = 0.5,
                     MinimumThroughput = options.CircuitBreakerThreshold,
                     BreakDuration = TimeSpan.FromSeconds(options.CircuitBreakerBreakDurationSeconds)
                 });

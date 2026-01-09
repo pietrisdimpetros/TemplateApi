@@ -116,7 +116,8 @@ namespace TemplateApi
                 );
             });
 
-            // ============================================================================
+     
+       // ============================================================================
             // 2. DATABASE MODULES
             // ============================================================================
             #region Module DbContexts
@@ -127,7 +128,6 @@ namespace TemplateApi
             // builder.Services.AddModuleDbContext<OrderingDbContext>("ordering");
 
             #endregion
-
             // Add Controllers
             builder.Services.AddControllers();
 

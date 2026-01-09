@@ -20,7 +20,7 @@ namespace Shared.Serialization.Builder
             var options = new SerializationOptions();
             configure?.Invoke(options);
 
-            // 2. Create the "Golden" JsonSerializerOptions instance
+            // 2. Create the JsonSerializerOptions instance
             // This instance is registered as a Singleton so Caching/Messaging libs can use it.
             var jsonOptions = new JsonSerializerOptions
             {
@@ -29,7 +29,13 @@ namespace Shared.Serialization.Builder
                 WriteIndented = options.WriteIndented,
                 TypeInfoResolver = AppJsonContext.Default
             };
-
+            
+            // Register additional contexts from the app
+            foreach (var resolver in options.TypeInfoResolverChain)
+            {
+                jsonOptions.TypeInfoResolverChain.Insert(0, resolver);
+            }
+            
             // Make it read-only to prevent runtime modification
             jsonOptions.MakeReadOnly();
 

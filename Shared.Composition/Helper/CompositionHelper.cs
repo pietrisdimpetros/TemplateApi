@@ -19,11 +19,13 @@ namespace Shared.Composition.Helper
             foreach (var prop in properties)
             {
                 var value = prop.GetValue(source);
-
-                // Only copy if the value is not null (optional safeguard)
-                // or simply copy everything including defaults if that's preferred.
-                // Here we copy everything to ensure the user's intent overrides defaults.
-                prop.SetValue(destination, value);
+                if (value != null) // Only copy if the source has a value
+                {
+                    // Only copy if the value is not null (optional safeguard)
+                    // or simply copy everything including defaults if that's preferred.
+                    // Here we copy everything to ensure the user's intent overrides defaults.
+                    prop.SetValue(destination, value);
+                }
             }
         }
     }

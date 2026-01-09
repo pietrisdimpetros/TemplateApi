@@ -23,7 +23,7 @@ namespace Shared.Data.Builder
 
             // 2. Register Interceptors as Singletons (they are stateless)
             if (options.EnableAuditing)
-                services.AddSingleton<AuditingInterceptor>();
+                services.AddScoped<AuditingInterceptor>();
 
             if (options.EnableSoftDelete)
                 services.AddSingleton<SoftDeleteInterceptor>();
@@ -45,7 +45,7 @@ namespace Shared.Data.Builder
                     // Automatically retries on transient errors (deadlocks, timeouts, network blips).
                     sqlOptions.EnableRetryOnFailure(
                         maxRetryCount: options.MaxRetryCount,
-                        maxRetryDelay: TimeSpan.FromSeconds(options.MaxRetryCount),
+                        maxRetryDelay: TimeSpan.FromSeconds(options.MaxRetryDelaySeconds),
                         errorNumbersToAdd: null); // Use default SQL transient error codes
 
                     // 3. Command Timeout

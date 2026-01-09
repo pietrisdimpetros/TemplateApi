@@ -3,6 +3,7 @@ using Shared.Resilience.Options;
 using Shared.Serialization.Options;
 using Shared.Telemetry.Options;
 using TemplateApi.Business.Health.Checks;
+using TemplateApi.Serialization;
 
 namespace TemplateApi
 {
@@ -83,7 +84,7 @@ namespace TemplateApi
                 // System.Text.Json (CamelCase, IgnoreNull)
                 // Ensure defaults are present if config is missing
                 options.Serialization ??= new SerializationOptions();
-
+                options.Serialization.TypeInfoResolverChain.Add(ApiJsonContext.Default);
                 // --- 8. Health Checks ---
                 // Probes for K8s / Load Balancers
                 // (Configuration is fully handled via appsettings.json binding)

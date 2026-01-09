@@ -63,14 +63,16 @@ namespace Shared.Networking.Builder
                 resilienceOptions.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 
                 // Attempt Timeout (The limit for a single try)
-                // We set this slightly lower than Total to allow for retries, 
-                // or equal if we want the attempt to take the full time.
-                resilienceOptions.AttemptTimeout.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
-
+                // Fix: We set this to half the total timeout (assuming retries > 0) or standard 10s logic.
+                // This ensures we can actually fit a retry in before the total timeout kills it.
+                var attemptTimeoutSeconds = options.TimeoutSeconds / 2.0;
+                resilienceOptions.AttemptTimeout.Timeout = TimeSpan.FromSeconds(attemptTimeoutSeconds);
+                
                 // C. Circuit Breaker Sampling Fix
                 // RULE: SamplingDuration must be >= 2 * AttemptTimeout
-                // We set it to 2x the global timeout to be safe.
-                resilienceOptions.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(options.TimeoutSeconds * 2);
+                // With Attempt = Total/2, Sampling becomes equal to Total (e.g., 30s).
+                // This is much more responsive for low-traffic services than the previous 60s (2*Total).
+                resilienceOptions.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(attemptTimeoutSeconds * 2);
 
                 // Optional: Adjust failure ratio
                 resilienceOptions.CircuitBreaker.FailureRatio = 0.5;

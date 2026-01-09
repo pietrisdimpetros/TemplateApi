@@ -14,6 +14,11 @@
         public int MaxRetryCount { get; set; } = 3;
 
         /// <summary>
+        /// Gets or sets the maximum delay between retry attempts in seconds.
+        /// </summary>
+        public int MaxRetryDelaySeconds { get; set; } = 30;
+
+        /// <summary>
         /// Gets or sets the command timeout in seconds.
         /// Default: 30.
         /// </summary>

@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Shared.Serialization.Options
 {
@@ -23,5 +24,10 @@ namespace Shared.Serialization.Options
         /// Gets or sets a value indicating whether to indent JSON (pretty print).
         /// </summary>
         public bool WriteIndented { get; set; } = false;
+
+        /// <summary>
+        /// Additional AOT Contexts to register (e.g. for App-specific models).
+        /// </summary>
+        public IList<IJsonTypeInfoResolver> TypeInfoResolverChain { get; } = [];
     }
 }

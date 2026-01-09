@@ -151,6 +151,7 @@ namespace Shared.Composition.Builder
             {
                 ConnectionString = rootOptions.Database.ConnectionString,
                 MaxRetryCount = rootOptions.Database.MaxRetryCount,
+                MaxRetryDelaySeconds = rootOptions.Database.MaxRetryDelaySeconds,
                 CommandTimeoutSeconds = rootOptions.Database.CommandTimeoutSeconds,
                 EnableDetailedErrors = rootOptions.Database.EnableDetailedErrors,
                 EnableSensitiveDataLogging = rootOptions.Database.EnableSensitiveDataLogging,

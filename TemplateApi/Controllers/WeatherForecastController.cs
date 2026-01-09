@@ -6,7 +6,7 @@ using Microsoft.FeatureManagement.Mvc;
 using Shared.Caching.Services;
 using System.Text.Json;
 using TemplateApi.Models;
-
+using TemplateApi.Business.Features;
 namespace TemplateApi.Controllers
 {
     [ApiController]
@@ -46,7 +46,7 @@ namespace TemplateApi.Controllers
         }
         // Requires BOTH "NewGraphCheck" AND "BetaDashboard" to be true
         [HttpGet("advanced-dashboard")]
-        [FeatureGate("NewGraphCheck", "BetaDashboard")]
+        [FeatureGate(CurrentFeature.NewGraphCheck, CurrentFeature.BetaDashboard)]
         public IActionResult GetAdvancedDashboard()
         {
             return Ok("Power user access granted.");
@@ -54,14 +54,14 @@ namespace TemplateApi.Controllers
 
         // Requires EITHER "BetaDashboard" OR "PreviewAccess"
         [HttpGet("preview")]
-        [FeatureGate(RequirementType.Any, "BetaDashboard", "PreviewAccess")]
+        [FeatureGate(RequirementType.Any, CurrentFeature.BetaDashboard, CurrentFeature.NewGraphCheck)]
         public IActionResult GetPreview()
         {
             return Ok("You have preview access.");
         }
 
         [HttpGet("graph-check")]
-        [FeatureGate("NewGraphCheck")] // Requires "NewGraphCheck": true
+        [FeatureGate(CurrentFeature.NewGraphCheck)] // Requires "NewGraphCheck": true
         public IActionResult GetGraphCheck()
         {
             return Ok("You have access.");

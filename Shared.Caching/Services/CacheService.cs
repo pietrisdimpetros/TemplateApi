@@ -33,7 +33,8 @@ namespace Shared.Caching.Services
     /// </summary>
     internal sealed class CacheService(
         IDistributedCache cache,
-        IOptions<CachingOptions> options) : ICacheService
+        IOptions<CachingOptions> options,
+        JsonSerializerOptions jsonOptions) : ICacheService
     {
         private readonly CachingOptions _options = options.Value;
 
@@ -48,7 +49,7 @@ namespace Shared.Caching.Services
 
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null, CancellationToken cancellationToken = default)
         {
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(value);
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(value, jsonOptions);
 
             var entryOptions = new DistributedCacheEntryOptions
             {

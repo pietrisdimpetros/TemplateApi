@@ -51,7 +51,7 @@ namespace Shared.Resilience.Builder
 
                 // D. Per-Attempt Timeout (Inner-most Layer)
                 // Ensures individual attempts don't hang forever.
-                pipelineBuilder.AddTimeout(TimeSpan.FromSeconds(5));
+                pipelineBuilder.AddTimeout(TimeSpan.FromSeconds(attemptTimeoutSeconds));
             });
 
             return builder;

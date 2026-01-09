@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<AssemblyName>Shared.Composition</AssemblyName>
+		<RootNamespace>Shared.Composition</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Shared.Caching\Shared.Caching.csproj" />
+		<ProjectReference Include="..\Shared.ErrorHandling\Shared.ErrorHandling.csproj" />
+		<ProjectReference Include="..\Shared.Health\Shared.Health.csproj" />
+		<ProjectReference Include="..\Shared.Logging\Shared.Logging.csproj" />
+		<ProjectReference Include="..\Shared.Networking\Shared.Networking.csproj" />
+		<ProjectReference Include="..\Shared.Swagger\Shared.Swagger.csproj" />
+		<ProjectReference Include="..\Shared.Resilience\Shared.Resilience.csproj" />
+		<ProjectReference Include="..\Shared.Security\Shared.Security.csproj" />
+		<ProjectReference Include="..\Shared.Serialization\Shared.Serialization.csproj" />
+		<ProjectReference Include="..\Shared.Telemetry\Shared.Telemetry.csproj" />
+	</ItemGroup>
+
+</Project>

@@ -51,6 +51,10 @@ namespace Shared.Serialization.Builder
 
                 // Add the Shared Context
                 httpJson.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default);
+                foreach (var resolver in options.TypeInfoResolverChain)
+                {
+                    httpJson.SerializerOptions.TypeInfoResolverChain.Insert(0, resolver);
+                }
             });
 
             // 4. Configure Controllers (Microsoft.AspNetCore.Mvc.JsonOptions)

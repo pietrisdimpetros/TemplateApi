@@ -36,8 +36,8 @@ namespace Shared.Caching.Services
         IOptions<CachingOptions> options,
         JsonSerializerOptions jsonOptions) : ICacheService
     {
+        private readonly JsonSerializerOptions _jsonOptions = jsonOptions;
         private readonly CachingOptions _options = options.Value;
-
         public async Task<T?> GetAsync<T>(string key, CancellationToken cancellationToken = default)
         {
             var bytes = await cache.GetAsync(key, cancellationToken);
@@ -49,7 +49,7 @@ namespace Shared.Caching.Services
 
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null, CancellationToken cancellationToken = default)
         {
-            var bytes = JsonSerializer.SerializeToUtf8Bytes(value, jsonOptions);
+            var bytes = JsonSerializer.SerializeToUtf8Bytes(value, _jsonOptions);
 
             var entryOptions = new DistributedCacheEntryOptions
             {

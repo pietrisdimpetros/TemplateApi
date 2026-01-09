@@ -18,6 +18,6 @@
   <Project Path="Shared.Swagger/Shared.Swagger.csproj" />
   <Project Path="Shared.Telemetry/Shared.Telemetry.csproj" />
   <Project Path="Shared.WebPerformance/Shared.WebPerformance.csproj" Id="552250d7-250f-4c69-b775-04daa350a9a8" />
-  <Project Path="TemplateApi.Buisness/TemplateApi.Business.csproj" Id="2f530908-8ccc-4a5f-8125-5485e40a3aca" />
+  <Project Path="TemplateApi.Business/TemplateApi.Business.csproj" Id="2f530908-8ccc-4a5f-8125-5485e40a3aca" />
   <Project Path="TemplateApi/TemplateApi.csproj" />
 </Solution>

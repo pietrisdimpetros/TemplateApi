@@ -25,6 +25,9 @@ namespace Shared.Identity.Builder
                     // located inside its own schema.
                     // Result: [identity].[__EFMigrationsHistory]
                     sql.MigrationsHistoryTable("__EFMigrationsHistory", options.SchemaName);
+
+                    sql.EnableRetryOnFailure(maxRetryCount: 3); 
+                    sql.CommandTimeout(30);
                 });
 
                 if (options.EnableDetailedErrors) dbOptions.EnableDetailedErrors();

@@ -23,7 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Shared.Composition\Shared.Composition.csproj" />
-    <ProjectReference Include="..\TemplateApi.Buisness\TemplateApi.Business.csproj" />
+    <ProjectReference Include="..\TemplateApi.Business\TemplateApi.Business.csproj" />
   </ItemGroup>
 
 </Project>

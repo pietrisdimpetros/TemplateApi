@@ -113,6 +113,10 @@ namespace Shared.Composition.Builder
                     opt.ConnectionString = rootOptions.Database.ConnectionString;
                     opt.EnableDetailedErrors = rootOptions.Database.EnableDetailedErrors;
                     opt.SchemaName = "identity";
+
+                    opt.MaxRetryCount = rootOptions.Database.MaxRetryCount;
+                    opt.MaxRetryDelaySeconds = rootOptions.Database.MaxRetryDelaySeconds;
+                    opt.CommandTimeoutSeconds = rootOptions.Database.CommandTimeoutSeconds;
                 });
 
                 // 3. Register Shared.Data "Infrastructure"

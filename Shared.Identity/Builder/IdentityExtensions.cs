@@ -26,8 +26,12 @@ namespace Shared.Identity.Builder
                     // Result: [identity].[__EFMigrationsHistory]
                     sql.MigrationsHistoryTable("__EFMigrationsHistory", options.SchemaName);
 
-                    sql.EnableRetryOnFailure(maxRetryCount: 3); 
-                    sql.CommandTimeout(30);
+                    sql.EnableRetryOnFailure(
+                            maxRetryCount: options.MaxRetryCount,
+                            maxRetryDelay: TimeSpan.FromSeconds(options.MaxRetryDelaySeconds),
+                            errorNumbersToAdd: null);
+
+                    sql.CommandTimeout(options.CommandTimeoutSeconds);
                 });
 
                 if (options.EnableDetailedErrors) dbOptions.EnableDetailedErrors();

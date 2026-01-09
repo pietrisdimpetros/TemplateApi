@@ -138,35 +138,32 @@ namespace Shared.Composition.Builder
             string schemaName)
             where TContext : ModuleDbContext
         {
-            // 1. Resolve the Root Options (registered in AddInfrastructure)
-            // We use the ServiceProvider to get the singleton options we bound earlier.
-            var serviceProvider = services.BuildServiceProvider();
-            var rootOptions = serviceProvider.GetService<SharedInfrastructureOptions>();
+            // NO BuildServiceProvider() CALL HERE!
 
-            if (rootOptions?.Database is null)
+            // Pass a lambda that resolves the options from the container at runtime
+            services.AddModuleDatabase<TContext>(
+                sp =>
             {
-                // Fallback or Throw: If Database options aren't configured, we can't register the DB.
-                throw new InvalidOperationException("Database options (Infrastructure:Database) are missing in configuration.");
-            }
+                var rootOptions = sp.GetRequiredService<SharedInfrastructureOptions>();
 
-            // 2. Map Options (if we needed to copy/modify, we would do it here)
-            // In this case, we pass the Options object directly to the Data layer.
-            var dbOptions = new Shared.Data.Options.DatabaseOptions
-            {
-                ConnectionString = rootOptions.Database.ConnectionString,
-                MaxRetryCount = rootOptions.Database.MaxRetryCount,
-                MaxRetryDelaySeconds = rootOptions.Database.MaxRetryDelaySeconds,
-                CommandTimeoutSeconds = rootOptions.Database.CommandTimeoutSeconds,
-                EnableDetailedErrors = rootOptions.Database.EnableDetailedErrors,
-                EnableSensitiveDataLogging = rootOptions.Database.EnableSensitiveDataLogging,
-                EnableAuditing = rootOptions.Database.EnableAuditing,
-                EnableSoftDelete = rootOptions.Database.EnableSoftDelete,
-                EnableSlowQueryLogging = rootOptions.Database.EnableSlowQueryLogging,
-                SlowQueryThresholdMilliseconds = rootOptions.Database.SlowQueryThresholdMilliseconds
-            };
+                if (rootOptions.Database is null)
+                    throw new InvalidOperationException("Database options are missing.");
 
-            // 3. Call the Implementation in Shared.Data
-            services.AddModuleDatabase<TContext>(dbOptions, schemaName);
+                // Map Shared options to Data options
+                return new Shared.Data.Options.DatabaseOptions
+                {
+                    ConnectionString = rootOptions.Database.ConnectionString,
+                    MaxRetryCount = rootOptions.Database.MaxRetryCount,
+                    MaxRetryDelaySeconds = rootOptions.Database.MaxRetryDelaySeconds,
+                    CommandTimeoutSeconds = rootOptions.Database.CommandTimeoutSeconds,
+                    EnableDetailedErrors = rootOptions.Database.EnableDetailedErrors,
+                    EnableSensitiveDataLogging = rootOptions.Database.EnableSensitiveDataLogging,
+                    EnableAuditing = rootOptions.Database.EnableAuditing,
+                    EnableSoftDelete = rootOptions.Database.EnableSoftDelete,
+                    EnableSlowQueryLogging = rootOptions.Database.EnableSlowQueryLogging,
+                    SlowQueryThresholdMilliseconds = rootOptions.Database.SlowQueryThresholdMilliseconds
+                };
+            }, schemaName);
 
             return services;
         }

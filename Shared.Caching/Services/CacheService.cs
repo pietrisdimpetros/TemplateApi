@@ -44,7 +44,7 @@ namespace Shared.Caching.Services
             if (bytes is null || bytes.Length == 0)
                 return default;
 
-            return JsonSerializer.Deserialize<T>(bytes);
+            return JsonSerializer.Deserialize<T>(bytes, _jsonOptions);
         }
 
         public async Task SetAsync<T>(string key, T value, TimeSpan? expiration = null, CancellationToken cancellationToken = default)

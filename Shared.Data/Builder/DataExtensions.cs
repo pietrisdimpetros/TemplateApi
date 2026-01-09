@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Shared.Data.Abstractions;
 using Shared.Data.Interceptors;
@@ -14,46 +15,41 @@ namespace Shared.Data.Builder
         /// </summary>
         public static IServiceCollection AddModuleDatabase<TContext>(
             this IServiceCollection services,
-            DatabaseOptions options,
+            Func<IServiceProvider, DatabaseOptions> optionsFactory,
             string schemaName)
             where TContext : ModuleDbContext
         {
             // 1. Register TimeProvider (Native .NET 8/9/10 feature)
             services.AddSingleton(TimeProvider.System);
 
-            // 2. Register Interceptors as Singletons (they are stateless)
-            if (options.EnableAuditing)
-                services.AddScoped<AuditingInterceptor>();
+            // 2. Register Interceptors
+            services.TryAddScoped<AuditingInterceptor>();
+            services.TryAddSingleton<SoftDeleteInterceptor>();
 
-            if (options.EnableSoftDelete)
-                services.AddSingleton<SoftDeleteInterceptor>();
+            services.TryAddSingleton(sp => new SlowQueryInterceptor(
+                sp.GetRequiredService<ILogger<SlowQueryInterceptor>>(),
+                optionsFactory(sp).SlowQueryThresholdMilliseconds)
+            );
 
-            if (options.EnableSlowQueryLogging)
-            {
-                services.AddSingleton(sp => new SlowQueryInterceptor(
-                    sp.GetRequiredService<ILogger<SlowQueryInterceptor>>(),
-                    options.SlowQueryThresholdMilliseconds));
-            }
-            
             // Native First: We use AddDbContextPool for performance (reusing context instances).
             services.AddDbContextPool<TContext>((serviceProvider, dbOptions) =>
             {
-                // 1. Configure SQL Server
+                // 3. Resolve Options using the Factory (Inside the scope)
+                var options = optionsFactory(serviceProvider);
+
+                // 4. Configure SQL Server
                 dbOptions.UseSqlServer(options.ConnectionString, sqlOptions =>
                 {
-                    // 2. CONNECTION RESILIENCY (The "Retry Policy")
-                    // Automatically retries on transient errors (deadlocks, timeouts, network blips).
+                    // CONNECTION RESILIENCY (The "Retry Policy")
                     sqlOptions.EnableRetryOnFailure(
                         maxRetryCount: options.MaxRetryCount,
                         maxRetryDelay: TimeSpan.FromSeconds(options.MaxRetryDelaySeconds),
-                        errorNumbersToAdd: null); // Use default SQL transient error codes
+                        errorNumbersToAdd: null);
 
-                    // 3. Command Timeout
+                    // Command Timeout
                     sqlOptions.CommandTimeout(options.CommandTimeoutSeconds);
 
-                    // 4. Migrations History Isolation
-                    // We keep the history table in the specific schema to avoid conflicts if modules manage their own migrations.
-                    // Note: We need to instantiate TContext to access the abstract Schema property 
+                    // Migrations History Isolation
                     sqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", schemaName);
                 });
 

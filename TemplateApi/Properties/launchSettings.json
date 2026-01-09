@@ -21,7 +21,7 @@
 
     // 2. DAILY WORK: Standard Development Profile
     // Select this in Visual Studio for normal debugging
-    "FourlisStoresWebApp (Dev)": {
+    "Template Api (Dev)": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
@@ -34,7 +34,7 @@
 
     // 3. RELEASE ASSETS TEST: Staging Profile
     // Select this to test your 'appsettings.Staging.json' (Production assets) while still in Debug mode
-    "FourlisStoresWebApp (Staging)": {
+    "Template Api (Staging)": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,

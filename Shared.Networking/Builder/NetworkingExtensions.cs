@@ -55,27 +55,32 @@ namespace Shared.Networking.Builder
             // 4. Standard Resilience (The FIX is below)
             clientBuilder.AddStandardResilienceHandler(resilienceOptions =>
             {
-                // A. Update Retry Count
-                resilienceOptions.Retry.MaxRetryAttempts = options.MaxRetries;
-
-                // B. Sync Timeouts
-                // Total Request Timeout (The hard limit for the whole operation including retries)
+                // 1. Configure Total Timeout (The hard limit)
                 resilienceOptions.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 
-                // Attempt Timeout (The limit for a single try)
-                // Fix: We set this to half the total timeout (assuming retries > 0) or standard 10s logic.
-                // This ensures we can actually fit a retry in before the total timeout kills it.
-                var attemptTimeoutSeconds = options.TimeoutSeconds / 2.0;
-                resilienceOptions.AttemptTimeout.Timeout = TimeSpan.FromSeconds(attemptTimeoutSeconds);
-                
-                // C. Circuit Breaker Sampling Fix
-                // RULE: SamplingDuration must be >= 2 * AttemptTimeout
-                // With Attempt = Total/2, Sampling becomes equal to Total (e.g., 30s).
-                // This is much more responsive for low-traffic services than the previous 60s (2*Total).
-                resilienceOptions.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(attemptTimeoutSeconds * 2);
+                // 2. Configure Retry Strategy
+                resilienceOptions.Retry.MaxRetryAttempts = options.MaxRetries;
+                // BackoffType is usually Exponential, so we can't just divide strictly. 
+                // But we can ensure the *Individual Attempt* is small enough to fit.
 
-                // Optional: Adjust failure ratio
-                resilienceOptions.CircuitBreaker.FailureRatio = 0.5;
+                // 3. Dynamic Attempt Timeout Calculation
+                // Logic: If we have 3 retries (4 total attempts), the attempt timeout 
+                // must be significantly smaller than Total / 4 to account for backoff delays.
+
+                // Calculate the theoretical maximum slots (Retries + 1 initial attempt)
+                var totalSlots = options.MaxRetries + 1;
+
+                // Safety buffer factor (e.g., 0.7) to leave room for the Backoff delays between tries
+                var safeAttemptTimeout = (options.TimeoutSeconds / (double)totalSlots) * 0.7;
+
+                // Enforce a sensible minimum (e.g., never less than 2 seconds)
+                var finalAttemptTimeout = Math.Max(2.0, safeAttemptTimeout);
+
+                resilienceOptions.AttemptTimeout.Timeout = TimeSpan.FromSeconds(finalAttemptTimeout);
+
+                // 4. Circuit Breaker Sampling
+                // Ensure we sample for at least 2x the attempt duration to catch failures accurately
+                resilienceOptions.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(finalAttemptTimeout * 2);
             });
 
             return services;

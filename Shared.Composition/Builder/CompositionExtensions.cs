@@ -105,15 +105,12 @@ namespace Shared.Composition.Builder
             // and usually doesn't need global service registration, but we keep the pattern 
             // if you decided to register a global registry in the future.
 
+            services.AddHttpContextAccessor();
+            services.TryAddSingleton<ICurrentUserService, WebCurrentUserService>();
             // Identity
             if (rootOptions.Database != null && rootOptions.Identity != null)
             {
-                // 1. Register the "Glue" Service
-                // We implement the Shared.Data interface using Shared.Composition's access to HttpContext
-                services.AddHttpContextAccessor();
-                services.TryAddScoped<ICurrentUserService, WebCurrentUserService>();
-
-                // 2. Register Shared.Identity
+                // 1. Register Shared.Identity
                 // This manages the "identity" schema and the ApplicationUser table
                 services.AddSharedIdentity(opt =>
                 {
@@ -126,7 +123,7 @@ namespace Shared.Composition.Builder
                     opt.CommandTimeoutSeconds = rootOptions.Database.CommandTimeoutSeconds;
                 });
 
-                // 3. Register Shared.Data "Infrastructure"
+                // 2. Register Shared.Data "Infrastructure"
                 // This registers the Interceptors (Auditing, SoftDelete) which will now 
                 // successfully resolve ICurrentUserService from step 1.
                 // Note: We don't have a global "AddSharedData" yet, but if you created one

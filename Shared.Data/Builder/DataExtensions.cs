@@ -23,7 +23,7 @@ namespace Shared.Data.Builder
             services.AddSingleton(TimeProvider.System);
 
             // 2. Register Interceptors
-            services.TryAddScoped<AuditingInterceptor>();
+            services.TryAddSingleton<AuditingInterceptor>();
             services.TryAddSingleton<SoftDeleteInterceptor>();
 
             services.TryAddSingleton(sp => new SlowQueryInterceptor(

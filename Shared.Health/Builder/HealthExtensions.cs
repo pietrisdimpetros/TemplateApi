@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Shared.Health.Internal;
+using Shared.Health.Models;
 using Shared.Health.Options;
 namespace Shared.Health.Builder
 {
@@ -71,19 +72,20 @@ namespace Shared.Health.Builder
         {
             context.Response.ContentType = "application/json";
 
-            var response = new
+            var response = new HealthResponse
             {
-                status = report.Status.ToString(),
-                totalDuration = report.TotalDuration,
-                results = report.Entries.ToDictionary(
-                    e => e.Key,
-                    e => new
-                    {
-                        status = e.Value.Status.ToString(),
-                        description = e.Value.Description,
-                        data = e.Value.Data
-                    })
+                Status = report.Status.ToString(),
+                TotalDuration = report.TotalDuration,
+                Results = report.Entries.ToDictionary(
+                     e => e.Key,
+                     e => new HealthCheckEntryDto
+                     {
+                         Status = e.Value.Status.ToString(),
+                         Description = e.Value.Description,
+                         Data = e.Value.Data
+                     })
             };
+            context.Response.ContentType = "application/json";
 
             return context.Response.WriteAsJsonAsync(response);
         }

@@ -3,6 +3,7 @@ using Shared.Data.Options;
 using Shared.ErrorHandling.Options;
 using Shared.FeatureManagement.Options;
 using Shared.Health.Options;
+using Shared.Identity.Options;
 using Shared.Logging.Options;
 using Shared.Networking.Options;
 using Shared.RateLimiting.Options;
@@ -36,5 +37,6 @@ namespace Shared.Composition.Options
         public WebPerformanceOptions? WebPerformance { get; set; }
         public FeatureManagementOptions? FeatureManagement { get; set; }
         public DatabaseOptions? Database { get; set; }
+        public IdentityInfrastructureOptions? Identity { get; set; }
     }
 }

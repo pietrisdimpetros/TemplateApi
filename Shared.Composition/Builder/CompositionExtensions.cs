@@ -1,15 +1,16 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Shared.Caching.Builder;
 using Shared.Composition.Helper;
 using Shared.Composition.Options;
 using Shared.Composition.Services;
 using Shared.Data.Abstractions;
-using Shared.Caching.Builder;
-using Shared.Identity.Builder;
 using Shared.Data.Builder;
 using Shared.ErrorHandling.Builder;
 using Shared.FeatureManagement.Builder;
 using Shared.Health.Builder;
+using Shared.Health.Internal;
+using Shared.Identity.Builder;
 using Shared.Logging.Builder;
 using Shared.Networking.Builder;
 using Shared.RateLimiting.Builder;
@@ -75,8 +76,14 @@ namespace Shared.Composition.Builder
 
             // Serialization
             if (rootOptions.Serialization is not null)
-                services.AddSharedSerialization(opt => CompositionHelper.CopyProperties(rootOptions.Serialization, opt));
+            {
+                // 1. Register the Health module's AOT context into the global chain
+                // This allows the global serializer to "understand" HealthResponse
+                rootOptions.Serialization.TypeInfoResolverChain.Add(HealthJsonContext.Default);
 
+                // 2. Register the service normally
+                services.AddSharedSerialization(opt => CompositionHelper.CopyProperties(rootOptions.Serialization, opt));
+            }
             // Health Checks
             if (rootOptions.Health is not null)
             {
@@ -99,7 +106,7 @@ namespace Shared.Composition.Builder
             // if you decided to register a global registry in the future.
 
             // Identity
-            if (rootOptions.Database != null)
+            if (rootOptions.Database != null && rootOptions.Identity != null)
             {
                 // 1. Register the "Glue" Service
                 // We implement the Shared.Data interface using Shared.Composition's access to HttpContext

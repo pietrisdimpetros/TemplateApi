@@ -1,4 +1,5 @@
 ﻿using Shared.Caching.Options;
+using Shared.Data.Options;
 using Shared.ErrorHandling.Options;
 using Shared.FeatureManagement.Options;
 using Shared.Health.Options;
@@ -34,5 +35,6 @@ namespace Shared.Composition.Options
         public RateLimitingOptions? RateLimiting { get; set; }
         public WebPerformanceOptions? WebPerformance { get; set; }
         public FeatureManagementOptions? FeatureManagement { get; set; }
+        public DatabaseOptions? Database { get; set; }
     }
 }

@@ -2,7 +2,7 @@ using Shared.Composition.Builder;
 using Shared.Resilience.Options;
 using Shared.Serialization.Options;
 using Shared.Telemetry.Options;
-using TemplateApi.Buisness.Health.Checks;
+using TemplateApi.Business.Health.Checks;
 
 namespace TemplateApi
 {
@@ -116,6 +116,18 @@ namespace TemplateApi
                 );
             });
 
+            // ============================================================================
+            // 2. DATABASE MODULES
+            // ============================================================================
+            #region Module DbContexts
+            // a. Register Catalog Module (Schema: catalog)
+            // This ensures [catalog].[__EFMigrationsHistory] is used.
+            builder.Services.AddModuleDbContext<TemplateApi.Business.Data.CatalogDbContext>("catalog");
+            // b. Future Module (Schema: ordering)
+            // builder.Services.AddModuleDbContext<OrderingDbContext>("ordering");
+
+            #endregion
+            
             // Add Controllers
             builder.Services.AddControllers();
 

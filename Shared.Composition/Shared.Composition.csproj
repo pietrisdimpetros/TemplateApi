@@ -27,6 +27,8 @@
 		<ProjectReference Include="..\Shared.RateLimiting\Shared.RateLimiting.csproj" />
 		<ProjectReference Include="..\Shared.WebPerformance\Shared.WebPerformance.csproj" />
 		<ProjectReference Include="..\Shared.FeatureManagement\Shared.FeatureManagement.csproj" />
+		<ProjectReference Include="..\Shared.Data\Shared.Data.csproj" />
+		<ProjectReference Include="..\Shared.Identity\Shared.Identity.csproj" />
 	</ItemGroup>
 
 </Project>

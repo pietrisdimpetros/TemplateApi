@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
-namespace TemplateApi.Buisness.Health.Checks
+namespace TemplateApi.Business.Health.Checks
 {
     public class GraphFunctionalityCheck : IHealthCheck
     {

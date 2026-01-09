@@ -8,6 +8,7 @@
   <Project Path="Shared.ErrorHandling/Shared.ErrorHandling.csproj" />
   <Project Path="Shared.FeatureManagement/Shared.FeatureManagement.csproj" Id="dd8067ff-f594-41bd-8535-97d209c46fb2" />
   <Project Path="Shared.Health/Shared.Health.csproj" />
+  <Project Path="Shared.Identity/Shared.Identity.csproj" Id="807b5edb-61d4-49e7-929e-cdcdadf5fffc" />
   <Project Path="Shared.Logging/Shared.Logging.csproj" />
   <Project Path="Shared.Networking/Shared.Networking.csproj" />
   <Project Path="Shared.RateLimiting/Shared.RateLimiting.csproj" Id="36d98d1b-81ce-4b76-854a-dba6f036d464" />
@@ -17,6 +18,6 @@
   <Project Path="Shared.Swagger/Shared.Swagger.csproj" />
   <Project Path="Shared.Telemetry/Shared.Telemetry.csproj" />
   <Project Path="Shared.WebPerformance/Shared.WebPerformance.csproj" Id="552250d7-250f-4c69-b775-04daa350a9a8" />
-  <Project Path="TemplateApi.Buisness/TemplateApi.Buisness.csproj" Id="2f530908-8ccc-4a5f-8125-5485e40a3aca" />
+  <Project Path="TemplateApi.Buisness/TemplateApi.Business.csproj" Id="2f530908-8ccc-4a5f-8125-5485e40a3aca" />
   <Project Path="TemplateApi/TemplateApi.csproj" />
 </Solution>

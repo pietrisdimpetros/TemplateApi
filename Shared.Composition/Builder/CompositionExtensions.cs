@@ -1,7 +1,12 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Shared.Caching.Builder;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Shared.Composition.Helper;
 using Shared.Composition.Options;
+using Shared.Composition.Services;
+using Shared.Data.Abstractions;
+using Shared.Caching.Builder;
+using Shared.Identity.Builder;
+using Shared.Data.Builder;
 using Shared.ErrorHandling.Builder;
 using Shared.FeatureManagement.Builder;
 using Shared.Health.Builder;
@@ -92,6 +97,71 @@ namespace Shared.Composition.Builder
             // Note: Shared.Resilience is strictly for HttpClientBuilder extensions 
             // and usually doesn't need global service registration, but we keep the pattern 
             // if you decided to register a global registry in the future.
+
+            // Identity
+            if (rootOptions.Database != null)
+            {
+                // 1. Register the "Glue" Service
+                // We implement the Shared.Data interface using Shared.Composition's access to HttpContext
+                services.AddHttpContextAccessor();
+                services.TryAddScoped<ICurrentUserService, WebCurrentUserService>();
+
+                // 2. Register Shared.Identity
+                // This manages the "identity" schema and the ApplicationUser table
+                services.AddSharedIdentity(opt =>
+                {
+                    opt.ConnectionString = rootOptions.Database.ConnectionString;
+                    opt.EnableDetailedErrors = rootOptions.Database.EnableDetailedErrors;
+                    opt.SchemaName = "identity";
+                });
+
+                // 3. Register Shared.Data "Infrastructure"
+                // This registers the Interceptors (Auditing, SoftDelete) which will now 
+                // successfully resolve ICurrentUserService from step 1.
+                // Note: We don't have a global "AddSharedData" yet, but if you created one
+                // to register common interceptors, it would go here.
+            }
+
+            return services;
+        }
+
+        /// <summary>
+        /// Registers a business-specific DbContext using the centralized Shared.Data configuration.
+        /// This is called in Program.cs for EACH module context.
+        /// </summary>
+        public static IServiceCollection AddModuleDbContext<TContext>(
+            this IServiceCollection services,
+            string schemaName)
+            where TContext : ModuleDbContext
+        {
+            // 1. Resolve the Root Options (registered in AddInfrastructure)
+            // We use the ServiceProvider to get the singleton options we bound earlier.
+            var serviceProvider = services.BuildServiceProvider();
+            var rootOptions = serviceProvider.GetService<SharedInfrastructureOptions>();
+
+            if (rootOptions?.Database is null)
+            {
+                // Fallback or Throw: If Database options aren't configured, we can't register the DB.
+                throw new InvalidOperationException("Database options (Infrastructure:Database) are missing in configuration.");
+            }
+
+            // 2. Map Options (if we needed to copy/modify, we would do it here)
+            // In this case, we pass the Options object directly to the Data layer.
+            var dbOptions = new Shared.Data.Options.DatabaseOptions
+            {
+                ConnectionString = rootOptions.Database.ConnectionString,
+                MaxRetryCount = rootOptions.Database.MaxRetryCount,
+                CommandTimeoutSeconds = rootOptions.Database.CommandTimeoutSeconds,
+                EnableDetailedErrors = rootOptions.Database.EnableDetailedErrors,
+                EnableSensitiveDataLogging = rootOptions.Database.EnableSensitiveDataLogging,
+                EnableAuditing = rootOptions.Database.EnableAuditing,
+                EnableSoftDelete = rootOptions.Database.EnableSoftDelete,
+                EnableSlowQueryLogging = rootOptions.Database.EnableSlowQueryLogging,
+                SlowQueryThresholdMilliseconds = rootOptions.Database.SlowQueryThresholdMilliseconds
+            };
+
+            // 3. Call the Implementation in Shared.Data
+            services.AddModuleDatabase<TContext>(dbOptions, schemaName);
 
             return services;
         }

@@ -108,9 +108,9 @@ namespace TemplateApi
                 healthBuilder.AddCheck<GraphFunctionalityCheck>("graph_functional_test", tags: ["ready"]);
                 healthBuilder.AddCheck<DemoCheck>("demo_test", tags: ["demo", "ready"]);
 
-                // Example: Add standard SQL check (if package installed)
+                // Read from your Infrastructure config instead of default connection strings
                 healthBuilder.AddSqlServer(
-                    connectionString: builder.Configuration.GetConnectionString("DefaultConnection")!,
+                    connectionString: builder.Configuration["Infrastructure:Database:ConnectionString"]!,
                     name: "sql_server",
                     tags: ["ready"]
                 );
@@ -127,7 +127,7 @@ namespace TemplateApi
             // builder.Services.AddModuleDbContext<OrderingDbContext>("ordering");
 
             #endregion
-            
+
             // Add Controllers
             builder.Services.AddControllers();
 

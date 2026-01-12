@@ -3,9 +3,11 @@
 namespace Shared.Workers.Audit.Services
 {
     /// <summary>
-    /// A standardized host for recurring interval tasks (Cron-like behavior) that require auditing.
+    /// A standardized host for recurring interval tasks.
     /// </summary>
-    public abstract class AuditedPeriodicService(ILogger logger) : AuditedBackgroundService(logger)
+    public abstract class AuditedPeriodicService(
+        ILogger logger,
+        string workerName) : AuditedBackgroundService(logger, workerName)
     {
         protected abstract TimeSpan Period { get; }
 
@@ -20,7 +22,6 @@ namespace Shared.Workers.Audit.Services
             {
                 while (await timer.WaitForNextTickAsync(stoppingToken))
                 {
-                    // The "Template Method" pattern ensures we never run without an Audit Context
                     await ExecuteTraceableAsync($"{WorkerName}-Tick", ExecuteIterationAsync, stoppingToken);
                 }
             }
@@ -31,9 +32,6 @@ namespace Shared.Workers.Audit.Services
             }
         }
 
-        /// <summary>
-        /// The unit of work to perform on every tick.
-        /// </summary>
         protected abstract Task ExecuteIterationAsync(CancellationToken stoppingToken);
     }
 }

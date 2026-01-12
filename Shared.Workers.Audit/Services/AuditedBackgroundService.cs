@@ -9,17 +9,15 @@ namespace Shared.Workers.Audit.Services
     /// This ensures that any data operations performed by the worker are correctly attributed
     /// in the 'CreatedBy'/'ModifiedBy' fields, rather than appearing as 'System'.
     /// </summary>
-    public abstract class AuditedBackgroundService(ILogger logger) : BackgroundService
+    public abstract class AuditedBackgroundService(
+          ILogger logger,
+          string workerName) : BackgroundService
     {
         public const string ActivitySourceName = "Shared.Workers.Audit";
-        // Global ActivitySource for all worker auditing
         protected static readonly ActivitySource ActivitySource = new(ActivitySourceName);
 
-        /// <summary>
-        /// The identity of this worker (e.g., "EmailSender").
-        /// Resulting Audit User: "Worker-EmailSender".
-        /// </summary>
-        protected abstract string WorkerName { get; }
+        // Store the name provided in the constructor
+        protected string WorkerName { get; } = workerName;
 
         /// <summary>
         /// Executes the provided workload inside a traceable Activity Scope.

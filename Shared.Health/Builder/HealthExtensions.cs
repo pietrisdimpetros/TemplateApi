@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Shared.Health.Internal;
 using Shared.Health.Models;
 using Shared.Health.Options;
@@ -70,6 +72,7 @@ namespace Shared.Health.Builder
         /// </summary>
         private static Task WriteJsonHealthResponse(HttpContext context, HealthReport report)
         {
+            var currentEnvirontment = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
             context.Response.ContentType = "application/json";
 
             var response = new HealthResponse
@@ -82,7 +85,7 @@ namespace Shared.Health.Builder
                      {
                          Status = e.Value.Status.ToString(),
                          Description = e.Value.Description,
-                         Data = e.Value.Data
+                         Data = currentEnvirontment.IsDevelopment() ? e.Value.Data : null
                      })
             };
             context.Response.ContentType = "application/json";

@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Shared.Health.Internal
 {
@@ -10,10 +11,16 @@ namespace Shared.Health.Internal
     internal sealed class LogHealthCheckPublisher(ILogger<LogHealthCheckPublisher> logger) : IHealthCheckPublisher
     {
         // Track the previous status to avoid spamming "Healthy" logs every 30s
-        private HealthStatus _prevStatus = HealthStatus.Unhealthy; 
+        private HealthStatus _prevStatus = HealthStatus.Unhealthy;
+        // Define a simple source name for this internal diagnostic
+        private static readonly ActivitySource ActivitySource = new("Shared.Health.Publisher");
 
         public Task PublishAsync(HealthReport report, CancellationToken cancellationToken)
         {
+            // Start a native Activity Scope
+            // The Interceptor in Shared.Data will automatically "see" this tag via Activity.Current
+            using var activity = ActivitySource.StartActivity("HealthCheckPublisher");
+            activity?.AddTag("enduser.id", "Health-Probe-Service");
             var status = report.Status;
 
             // 1. Log Changes in Overall Status

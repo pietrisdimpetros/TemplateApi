@@ -184,7 +184,7 @@ namespace Shared.Composition.Builder
             }
 
             services.AddHttpContextAccessor();
-            services.TryAddSingleton<ICurrentUserService, WebCurrentUserService>();
+            services.TryAddSingleton<ICurrentUserService,WebCurrentUserService>();
 
             // Identity
             if (rootOptions.Database != null && rootOptions.Identity != null)
@@ -198,7 +198,7 @@ namespace Shared.Composition.Builder
                     opt.MaxRetryDelaySeconds = rootOptions.Database.MaxRetryDelaySeconds;
                     opt.CommandTimeoutSeconds = rootOptions.Database.CommandTimeoutSeconds;
                 });
-            }
+            }   
 
             return services;
         }

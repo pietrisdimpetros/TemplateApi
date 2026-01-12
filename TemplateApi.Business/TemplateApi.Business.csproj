@@ -12,6 +12,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Shared.Data\Shared.Data.csproj" />
+		<ProjectReference Include="..\Shared.Workers.Audit\Shared.Workers.Audit.csproj" />
 	</ItemGroup>
 	
 </Project>

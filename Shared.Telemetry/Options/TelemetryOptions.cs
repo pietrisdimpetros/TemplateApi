@@ -23,5 +23,8 @@
         /// Only used if UseAzureMonitor is false.
         /// </summary>
         public string OtlpEndpoint { get; set; } = "http://localhost:4317";
+
+        // Agnostic list of sources to listen to
+        public IList<string> ActivitySources { get; } = [];
     }
 }

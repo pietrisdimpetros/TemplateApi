@@ -46,6 +46,11 @@ namespace Shared.Telemetry.Builder
                         .AddAspNetCoreInstrumentation()
                         .AddHttpClientInstrumentation();
 
+                    foreach (var source in options.ActivitySources)
+                    {
+                        tracing.AddSource(source);
+                    }
+
                     if (!options.UseAzureMonitor)
                     {
                         tracing.AddOtlpExporter(otlp => otlp.Endpoint = new Uri(options.OtlpEndpoint));

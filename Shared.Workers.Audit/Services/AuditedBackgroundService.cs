@@ -11,8 +11,9 @@ namespace Shared.Workers.Audit.Services
     /// </summary>
     public abstract class AuditedBackgroundService(ILogger logger) : BackgroundService
     {
+        public const string ActivitySourceName = "Shared.Workers.Audit";
         // Global ActivitySource for all worker auditing
-        protected static readonly ActivitySource ActivitySource = new("Shared.Workers.Audit");
+        protected static readonly ActivitySource ActivitySource = new(ActivitySourceName);
 
         /// <summary>
         /// The identity of this worker (e.g., "EmailSender").

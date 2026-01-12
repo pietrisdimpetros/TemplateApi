@@ -129,6 +129,10 @@ namespace TemplateApi
             // builder.Services.AddModuleDbContext<OrderingDbContext>("ordering");
 
             #endregion
+
+            #region Custom Workers
+            builder.Services.AddHostedService<TemplateApi.Business.Workers.Audit.DataCleanupWorker>();
+            #endregion
             // Add Controllers
             builder.Services.AddControllers();
 

@@ -14,12 +14,13 @@ using Shared.Identity.Builder;
 using Shared.Logging.Builder;
 using Shared.Networking.Builder;
 using Shared.RateLimiting.Builder;
+using Shared.Resilience.Builder;
 using Shared.Security.Builder;
 using Shared.Serialization.Builder;
 using Shared.Swagger.Builder;
 using Shared.Telemetry.Builder;
 using Shared.WebPerformance.Builder;
-using Shared.Resilience.Builder;
+using Shared.Workers.Audit.Services;
 namespace Shared.Composition.Builder
 {
     public static class CompositionExtensions
@@ -68,6 +69,7 @@ namespace Shared.Composition.Builder
                     opt.ServiceVersion = rootOptions.Telemetry.ServiceVersion;
                     opt.UseAzureMonitor = rootOptions.Telemetry.UseAzureMonitor;
                     opt.OtlpEndpoint = rootOptions.Telemetry.OtlpEndpoint;
+                    opt.ActivitySources.Add(AuditedBackgroundService.ActivitySourceName);
                 });
             }
 

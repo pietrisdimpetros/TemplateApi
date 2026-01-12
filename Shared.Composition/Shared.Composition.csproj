@@ -29,6 +29,7 @@
 		<ProjectReference Include="..\Shared.FeatureManagement\Shared.FeatureManagement.csproj" />
 		<ProjectReference Include="..\Shared.Data\Shared.Data.csproj" />
 		<ProjectReference Include="..\Shared.Identity\Shared.Identity.csproj" />
+		<ProjectReference Include="..\Shared.Workers.Audit\Shared.Workers.Audit.csproj" />
 	</ItemGroup>
 
 </Project>

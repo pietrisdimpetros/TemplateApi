@@ -4,9 +4,10 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.FeatureManagement;
 using Microsoft.FeatureManagement.Mvc;
 using Shared.Caching.Services;
+using Shared.Idempotency.Attributes;
 using System.Text.Json;
-using TemplateApi.Models;
 using TemplateApi.Business.Features;
+using TemplateApi.Models;
 namespace TemplateApi.Controllers
 {
     [ApiController]
@@ -120,6 +121,15 @@ namespace TemplateApi.Controllers
                 logger.LogError(ex, "External request failed");
                 return StatusCode(502, new { Error = "External dependency failed", Details = ex.Message });
             }
+        }
+
+        [HttpPost("create-forecast")]
+        [Idempotent] // <--- Prevents double-creation
+        public IActionResult CreateForecast([FromBody] WeatherForecast forecast)
+        {
+            // If client sends "Idempotency-Key: 123", this runs ONCE.
+            // The second time they send "123", they get the cached 200 OK immediately.
+            return Ok(new { Id = Guid.NewGuid(), Status = "Created" });
         }
     }
 }

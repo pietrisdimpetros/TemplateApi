@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Shared.Caching.Builder;
-// CompositionHelper is no longer used/needed
 using Shared.Composition.Options;
 using Shared.Composition.Services;
 using Shared.Data.Abstractions;
@@ -10,6 +9,7 @@ using Shared.ErrorHandling.Builder;
 using Shared.FeatureManagement.Builder;
 using Shared.Health.Builder;
 using Shared.Health.Internal;
+using Shared.Idempotency.Builder;
 using Shared.Identity.Builder;
 using Shared.Logging.Builder;
 using Shared.Networking.Builder;
@@ -21,6 +21,7 @@ using Shared.Swagger.Builder;
 using Shared.Telemetry.Builder;
 using Shared.WebPerformance.Builder;
 using Shared.Workers.Audit.Services;
+using Shared.Idempotency.Filters;
 namespace Shared.Composition.Builder
 {
     public static class CompositionExtensions
@@ -85,6 +86,16 @@ namespace Shared.Composition.Builder
                 });
             }
 
+            // Idempotency Registration
+            if (rootOptions.Idempotency is not null)
+            {
+                services.AddSharedIdempotency(opt =>
+                {
+                    opt.HeaderName = rootOptions.Idempotency.HeaderName;
+                    opt.ExpirationMinutes = rootOptions.Idempotency.ExpirationMinutes;
+                });
+            }
+            
             // Security
             if (rootOptions.Security is not null)
             {
@@ -218,6 +229,15 @@ namespace Shared.Composition.Builder
                 });
             }
 
+            services.AddControllers(mvcOptions =>
+            {
+                // If Idempotency is enabled, add the filter globally.
+                // The filter itself checks for the [Idempotent] attribute, so this is safe.
+                if (rootOptions.Idempotency is not null)
+                {
+                    mvcOptions.Filters.Add<IdempotencyFilter>();
+                }
+            });
             return services;
         }
 

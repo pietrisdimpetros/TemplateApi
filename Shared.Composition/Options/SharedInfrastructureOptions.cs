@@ -3,6 +3,7 @@ using Shared.Data.Options;
 using Shared.ErrorHandling.Options;
 using Shared.FeatureManagement.Options;
 using Shared.Health.Options;
+using Shared.Idempotency.Options;
 using Shared.Identity.Options;
 using Shared.Logging.Options;
 using Shared.Networking.Options;
@@ -38,5 +39,6 @@ namespace Shared.Composition.Options
         public FeatureManagementOptions? FeatureManagement { get; set; }
         public DatabaseOptions? Database { get; set; }
         public IdentityInfrastructureOptions? Identity { get; set; }
+        public IdempotencyOptions? Idempotency { get; set; }
     }
 }

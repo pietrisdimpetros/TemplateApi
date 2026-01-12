@@ -8,6 +8,7 @@
   <Project Path="Shared.ErrorHandling/Shared.ErrorHandling.csproj" />
   <Project Path="Shared.FeatureManagement/Shared.FeatureManagement.csproj" Id="dd8067ff-f594-41bd-8535-97d209c46fb2" />
   <Project Path="Shared.Health/Shared.Health.csproj" />
+  <Project Path="Shared.Idempotency/Shared.Idempotency.csproj" Id="b7503d18-fe5d-434d-83d4-8d40346ec160" />
   <Project Path="Shared.Identity/Shared.Identity.csproj" Id="807b5edb-61d4-49e7-929e-cdcdadf5fffc" />
   <Project Path="Shared.Logging/Shared.Logging.csproj" />
   <Project Path="Shared.Networking/Shared.Networking.csproj" />

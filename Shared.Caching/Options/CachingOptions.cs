@@ -6,7 +6,7 @@
         /// Gets or sets the Redis connection string.
         /// Example: "localhost:6379,abortConnect=false"
         /// </summary>
-        public required string ConnectionString { get; set; }
+        public string? ConnectionString { get; set; }
 
         /// <summary>
         /// Gets or sets the instance name to prefix keys with.

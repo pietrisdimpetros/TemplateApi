@@ -16,17 +16,26 @@ namespace Shared.Caching.Builder
         {
             var options = new CachingOptions
             {
-                ConnectionString = "localhost:6379",
+                ConnectionString = null,
                 InstanceName = "Default:"
             };
             configure(options);
             services.AddSingleton(options);
 
-            services.AddStackExchangeRedisCache(redisOptions =>
+            if (!string.IsNullOrWhiteSpace(options.ConnectionString))
             {
-                redisOptions.Configuration = options.ConnectionString;
-                redisOptions.InstanceName = options.InstanceName;
-            });
+                // 1. Production / Distributed (Redis)
+                services.AddStackExchangeRedisCache(redisOptions =>
+                {
+                    redisOptions.Configuration = options.ConnectionString;
+                    redisOptions.InstanceName = options.InstanceName;
+                });
+            }
+            else
+            {
+                // 2. Development / Single Instance (In-Memory)
+                services.AddDistributedMemoryCache();
+            }
 
             // --- CHANGED: Explicitly configure Cache Serialization Stability ---
             services.AddSingleton<ICacheService>(sp =>
@@ -60,13 +69,15 @@ namespace Shared.Caching.Builder
             });
             // ------------------------------------------------------------------
 
-            if (options.DataProtection != null && options.DataProtection.Enabled)
+            if (options.DataProtection != null &&
+                 options.DataProtection.Enabled &&
+                 !string.IsNullOrWhiteSpace(options.ConnectionString)) // Don't try to persist keys if using Memory
             {
                 var redisConnStr = !string.IsNullOrEmpty(options.DataProtection.ConnectionStringOverride)
                     ? options.DataProtection.ConnectionStringOverride
                     : options.ConnectionString;
 
-                var redis = ConnectionMultiplexer.Connect(redisConnStr);
+                var redis = ConnectionMultiplexer.Connect(redisConnStr!);
 
                 services.AddDataProtection()
                     .SetApplicationName(options.DataProtection.ApplicationName)

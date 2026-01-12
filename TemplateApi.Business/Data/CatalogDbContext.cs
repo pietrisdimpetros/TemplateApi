@@ -10,7 +10,7 @@ namespace TemplateApi.Business.Data
         // 1. Define the Schema strictly
         protected override string Schema => "catalog";
 
-        public DbSet<Product> Products { get; set; }
+        public DbSet<Product>? Products { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

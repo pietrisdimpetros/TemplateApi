@@ -19,7 +19,7 @@ using Shared.Serialization.Builder;
 using Shared.Swagger.Builder;
 using Shared.Telemetry.Builder;
 using Shared.WebPerformance.Builder;
-
+using Shared.Resilience.Builder;
 namespace Shared.Composition.Builder
 {
     public static class CompositionExtensions
@@ -174,17 +174,33 @@ namespace Shared.Composition.Builder
             // Networking
             if (rootOptions.Networking is not null)
             {
-                services.AddSharedNetworking(opt =>
-                {
-                    opt.UserAgent = rootOptions.Networking.UserAgent;
-                    opt.TimeoutSeconds = rootOptions.Networking.TimeoutSeconds;
-                    opt.MaxRetries = rootOptions.Networking.MaxRetries;
-                    opt.IgnoreSslErrors = rootOptions.Networking.IgnoreSslErrors;
-                });
+                services.AddSharedNetworking(
+                    // 1. Configure Basic Options
+                    opt =>
+                    {
+                        opt.UserAgent = rootOptions.Networking.UserAgent;
+                        opt.TimeoutSeconds = rootOptions.Networking.TimeoutSeconds;
+                        opt.MaxRetries = rootOptions.Networking.MaxRetries;
+                        opt.IgnoreSslErrors = rootOptions.Networking.IgnoreSslErrors;
+                    },
+                   // 2. The Hook: Inject the Smart Resilience Logic Here!
+                   builder =>
+                   {
+                       // This uses your Custom Extension from Shared.Resilience
+                       builder.AddStandardResilience(resilienceOptions =>
+                       {
+                           resilienceOptions.RetryCount = rootOptions.Networking.MaxRetries;
+                           resilienceOptions.RetryDelaySeconds = rootOptions.Resilience!.RetryDelaySeconds;
+                           resilienceOptions.CircuitBreakerBreakDurationSeconds = rootOptions.Resilience!.CircuitBreakerBreakDurationSeconds;
+                           resilienceOptions.TotalRequestTimeoutSeconds = rootOptions.Networking.TimeoutSeconds;
+                           resilienceOptions.CircuitBreakerThreshold = rootOptions.Resilience!.CircuitBreakerThreshold;
+                       });
+                   }
+                );
             }
 
             services.AddHttpContextAccessor();
-            services.TryAddSingleton<ICurrentUserService,WebCurrentUserService>();
+            services.TryAddSingleton<ICurrentUserService, WebCurrentUserService>();
 
             // Identity
             if (rootOptions.Database != null && rootOptions.Identity != null)
@@ -198,7 +214,7 @@ namespace Shared.Composition.Builder
                     opt.MaxRetryDelaySeconds = rootOptions.Database.MaxRetryDelaySeconds;
                     opt.CommandTimeoutSeconds = rootOptions.Database.CommandTimeoutSeconds;
                 });
-            }   
+            }
 
             return services;
         }

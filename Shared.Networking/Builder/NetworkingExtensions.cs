@@ -11,7 +11,8 @@ namespace Shared.Networking.Builder
 
         public static IServiceCollection AddSharedNetworking(
             this IServiceCollection services,
-            Action<NetworkingOptions> configure)
+            Action<NetworkingOptions> configure,
+            Action<IHttpClientBuilder>? builderConfigure = null)
         {
             var options = new NetworkingOptions();
             configure(options);
@@ -54,22 +55,7 @@ namespace Shared.Networking.Builder
             clientBuilder.AddHeaderPropagation();
 
             // 4. Standard Resilience
-            clientBuilder.AddStandardResilienceHandler(resilienceOptions =>
-            {
-                // 1. Configure Total Timeout (The hard limit for the entire operation including retries)
-                resilienceOptions.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
-
-                // 2. Configure Retry Strategy
-                resilienceOptions.Retry.MaxRetryAttempts = options.MaxRetries;
-
-                // 3. Simplified Attempt Timeout
-                resilienceOptions.AttemptTimeout.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
-
-                // 4. Circuit Breaker Sampling
-                // Sample for 2x the duration to ensure statistical significance
-                resilienceOptions.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(options.TimeoutSeconds * 2);
-            });
-
+            builderConfigure?.Invoke(clientBuilder);
             return services;
         }
     }

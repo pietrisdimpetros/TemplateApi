@@ -2,6 +2,7 @@
 using Shared.Networking.Options;
 using System.Net;
 using System.Net.Http.Headers;
+
 namespace Shared.Networking.Builder
 {
     public static class NetworkingExtensions
@@ -52,35 +53,21 @@ namespace Shared.Networking.Builder
             // 3. Header Propagation
             clientBuilder.AddHeaderPropagation();
 
-            // 4. Standard Resilience (The FIX is below)
+            // 4. Standard Resilience
             clientBuilder.AddStandardResilienceHandler(resilienceOptions =>
             {
-                // 1. Configure Total Timeout (The hard limit)
+                // 1. Configure Total Timeout (The hard limit for the entire operation including retries)
                 resilienceOptions.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 
                 // 2. Configure Retry Strategy
                 resilienceOptions.Retry.MaxRetryAttempts = options.MaxRetries;
-                // BackoffType is usually Exponential, so we can't just divide strictly. 
-                // But we can ensure the *Individual Attempt* is small enough to fit.
 
-                // 3. Dynamic Attempt Timeout Calculation
-                // Logic: If we have 3 retries (4 total attempts), the attempt timeout 
-                // must be significantly smaller than Total / 4 to account for backoff delays.
-
-                // Calculate the theoretical maximum slots (Retries + 1 initial attempt)
-                var totalSlots = options.MaxRetries + 1;
-
-                // Safety buffer factor (e.g., 0.7) to leave room for the Backoff delays between tries
-                var safeAttemptTimeout = (options.TimeoutSeconds / (double)totalSlots) * 0.7;
-
-                // Enforce a sensible minimum (e.g., never less than 2 seconds)
-                var finalAttemptTimeout = Math.Max(2.0, safeAttemptTimeout);
-
-                resilienceOptions.AttemptTimeout.Timeout = TimeSpan.FromSeconds(finalAttemptTimeout);
+                // 3. Simplified Attempt Timeout
+                resilienceOptions.AttemptTimeout.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
 
                 // 4. Circuit Breaker Sampling
-                // Ensure we sample for at least 2x the attempt duration to catch failures accurately
-                resilienceOptions.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(finalAttemptTimeout * 2);
+                // Sample for 2x the duration to ensure statistical significance
+                resilienceOptions.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(options.TimeoutSeconds * 2);
             });
 
             return services;

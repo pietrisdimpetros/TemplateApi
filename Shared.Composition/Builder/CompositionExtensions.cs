@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Shared.Caching.Builder;
-using Shared.Composition.Helper;
+// CompositionHelper is no longer used/needed
 using Shared.Composition.Options;
 using Shared.Composition.Services;
 using Shared.Data.Abstractions;
@@ -19,6 +19,7 @@ using Shared.Serialization.Builder;
 using Shared.Swagger.Builder;
 using Shared.Telemetry.Builder;
 using Shared.WebPerformance.Builder;
+
 namespace Shared.Composition.Builder
 {
     public static class CompositionExtensions
@@ -36,124 +37,184 @@ namespace Shared.Composition.Builder
             var rootOptions = new SharedInfrastructureOptions();
             configure(rootOptions);
             services.AddSingleton(rootOptions);
-            // 2. Conditionally Register Services using Reflection for property mapping
+
+            // 2. Conditionally Register Services using Manual Assignment (AOT Safe)
 
             // Logging
             if (rootOptions.Logging is not null)
-                services.AddSharedLogging(opt => CompositionHelper.CopyProperties(rootOptions.Logging, opt));
+            {
+                services.AddSharedLogging(opt =>
+                {
+                    opt.EnableDetailedOutput = rootOptions.Logging.EnableDetailedOutput;
+                    opt.EnableEnrichment = rootOptions.Logging.EnableEnrichment;
+                });
+            }
 
             // Error Handling
             if (rootOptions.ErrorHandling is not null)
-                services.AddSharedErrorHandling(opt => CompositionHelper.CopyProperties(rootOptions.ErrorHandling, opt));
+            {
+                services.AddSharedErrorHandling(opt =>
+                {
+                    opt.IncludeStackTrace = rootOptions.ErrorHandling.IncludeStackTrace;
+                });
+            }
 
             // Telemetry
             if (rootOptions.Telemetry is not null)
-                services.AddSharedTelemetry(opt => CompositionHelper.CopyProperties(rootOptions.Telemetry, opt));
+            {
+                services.AddSharedTelemetry(opt =>
+                {
+                    opt.ServiceName = rootOptions.Telemetry.ServiceName;
+                    opt.ServiceVersion = rootOptions.Telemetry.ServiceVersion;
+                    opt.UseAzureMonitor = rootOptions.Telemetry.UseAzureMonitor;
+                    opt.OtlpEndpoint = rootOptions.Telemetry.OtlpEndpoint;
+                });
+            }
 
             // Caching
             if (rootOptions.Caching is not null)
-                services.AddSharedCaching(opt => CompositionHelper.CopyProperties(rootOptions.Caching, opt));
+            {
+                services.AddSharedCaching(opt =>
+                {
+                    opt.ConnectionString = rootOptions.Caching.ConnectionString;
+                    opt.InstanceName = rootOptions.Caching.InstanceName;
+                    opt.DefaultExpirationMinutes = rootOptions.Caching.DefaultExpirationMinutes;
+                    opt.DataProtection = rootOptions.Caching.DataProtection;
+                });
+            }
 
             // Security
             if (rootOptions.Security is not null)
-                services.AddSharedSecurity(opt => CompositionHelper.CopyProperties(rootOptions.Security, opt));
+            {
+                services.AddSharedSecurity(opt =>
+                {
+                    opt.Authority = rootOptions.Security.Authority;
+                    opt.Audience = rootOptions.Security.Audience;
+                    opt.AllowedOrigins = rootOptions.Security.AllowedOrigins;
+                });
+            }
 
             // Rate Limiting
             if (rootOptions.RateLimiting is not null)
-                services.AddSharedRateLimiting(opt => CompositionHelper.CopyProperties(rootOptions.RateLimiting, opt));
+            {
+                services.AddSharedRateLimiting(opt =>
+                {
+                    opt.PolicyName = rootOptions.RateLimiting.PolicyName;
+                    opt.PermitLimit = rootOptions.RateLimiting.PermitLimit;
+                    opt.WindowSeconds = rootOptions.RateLimiting.WindowSeconds;
+                    opt.QueueLimit = rootOptions.RateLimiting.QueueLimit;
+                });
+            }
 
             // Web Performance (Output Caching)
             if (rootOptions.WebPerformance is not null)
-                services.AddSharedWebPerformance(opt => CompositionHelper.CopyProperties(rootOptions.WebPerformance, opt));
+            {
+                services.AddSharedWebPerformance(opt =>
+                {
+                    opt.EnableOutputCaching = rootOptions.WebPerformance.EnableOutputCaching;
+                    opt.DefaultExpirationSeconds = rootOptions.WebPerformance.DefaultExpirationSeconds;
+                    opt.RedisConnectionString = rootOptions.WebPerformance.RedisConnectionString;
+                });
+            }
 
             // Feature Management
             if (rootOptions.FeatureManagement is not null)
-                services.AddSharedFeatureManagement(opt => CompositionHelper.CopyProperties(rootOptions.FeatureManagement, opt));
+            {
+                services.AddSharedFeatureManagement(opt =>
+                {
+                    opt.FailIfMissing = rootOptions.FeatureManagement.FailIfMissing;
+                    opt.SectionName = rootOptions.FeatureManagement.SectionName;
+                });
+            }
 
             // OpenAPI/Swagger
             if (rootOptions.OpenApi is not null)
-                services.AddSharedOpenApi(opt => CompositionHelper.CopyProperties(rootOptions.OpenApi, opt));
+            {
+                services.AddSharedOpenApi(opt =>
+                {
+                    opt.DocumentTitle = rootOptions.OpenApi.DocumentTitle;
+                    opt.DocumentVersion = rootOptions.OpenApi.DocumentVersion;
+                    opt.EnableAuth = rootOptions.OpenApi.EnableAuth;
+                });
+            }
 
             // Serialization
             if (rootOptions.Serialization is not null)
             {
                 // 1. Register the Health module's AOT context into the global chain
-                // This allows the global serializer to "understand" HealthResponse
                 rootOptions.Serialization.TypeInfoResolverChain.Add(HealthJsonContext.Default);
 
                 // 2. Register the service normally
-                services.AddSharedSerialization(opt => CompositionHelper.CopyProperties(rootOptions.Serialization, opt));
+                services.AddSharedSerialization(opt =>
+                {
+                    opt.NamingPolicy = rootOptions.Serialization.NamingPolicy;
+                    opt.IgnoreCondition = rootOptions.Serialization.IgnoreCondition;
+                    opt.WriteIndented = rootOptions.Serialization.WriteIndented;
+                    // Note: TypeInfoResolverChain is a list and handled by reference if we wanted to copy it,
+                    // but AddSharedSerialization handles the registration of the chain elements separately.
+                });
             }
+
             // Health Checks
             if (rootOptions.Health is not null)
             {
-                // 1. Register base infrastructure (The Mechanism)
-                // This adds the "self" check (if enabled) and the Publisher
+                // 1. Register base infrastructure
                 var healthBuilder = services.AddSharedHealth(opt =>
-                    CompositionHelper.CopyProperties(rootOptions.Health, opt));
+                {
+                    opt.LivenessEndpoint = rootOptions.Health.LivenessEndpoint;
+                    opt.ReadinessEndpoint = rootOptions.Health.ReadinessEndpoint;
+                    opt.EnableLogPublisher = rootOptions.Health.EnableLogPublisher;
+                    opt.EnableDefaultHealthCheck = rootOptions.Health.EnableDefaultHealthCheck;
+                });
 
-                // 2. Inject Business Logic (The Policy)
-                // This applies the checks defined in Program.cs
+                // 2. Inject Business Logic
                 extraHealthChecks?.Invoke(healthBuilder);
             }
 
             // Networking
             if (rootOptions.Networking is not null)
-                services.AddSharedNetworking(opt => CompositionHelper.CopyProperties(rootOptions.Networking, opt));
-
-            // Note: Shared.Resilience is strictly for HttpClientBuilder extensions 
-            // and usually doesn't need global service registration, but we keep the pattern 
-            // if you decided to register a global registry in the future.
+            {
+                services.AddSharedNetworking(opt =>
+                {
+                    opt.UserAgent = rootOptions.Networking.UserAgent;
+                    opt.TimeoutSeconds = rootOptions.Networking.TimeoutSeconds;
+                    opt.MaxRetries = rootOptions.Networking.MaxRetries;
+                    opt.IgnoreSslErrors = rootOptions.Networking.IgnoreSslErrors;
+                });
+            }
 
             services.AddHttpContextAccessor();
             services.TryAddSingleton<ICurrentUserService, WebCurrentUserService>();
+
             // Identity
             if (rootOptions.Database != null && rootOptions.Identity != null)
             {
-                // 1. Register Shared.Identity
-                // This manages the "identity" schema and the ApplicationUser table
                 services.AddSharedIdentity(opt =>
                 {
                     opt.ConnectionString = rootOptions.Database.ConnectionString;
                     opt.EnableDetailedErrors = rootOptions.Database.EnableDetailedErrors;
                     opt.SchemaName = "identity";
-
                     opt.MaxRetryCount = rootOptions.Database.MaxRetryCount;
                     opt.MaxRetryDelaySeconds = rootOptions.Database.MaxRetryDelaySeconds;
                     opt.CommandTimeoutSeconds = rootOptions.Database.CommandTimeoutSeconds;
                 });
-
-                // 2. Register Shared.Data "Infrastructure"
-                // This registers the Interceptors (Auditing, SoftDelete) which will now 
-                // successfully resolve ICurrentUserService from step 1.
-                // Note: We don't have a global "AddSharedData" yet, but if you created one
-                // to register common interceptors, it would go here.
             }
 
             return services;
         }
 
-        /// <summary>
-        /// Registers a business-specific DbContext using the centralized Shared.Data configuration.
-        /// This is called in Program.cs for EACH module context.
-        /// </summary>
         public static IServiceCollection AddModuleDbContext<TContext>(
             this IServiceCollection services,
             string schemaName)
             where TContext : ModuleDbContext
         {
-            // NO BuildServiceProvider() CALL HERE!
-
-            // Pass a lambda that resolves the options from the container at runtime
-            services.AddModuleDatabase<TContext>(
-                sp =>
+            services.AddModuleDatabase<TContext>(sp =>
             {
                 var rootOptions = sp.GetRequiredService<SharedInfrastructureOptions>();
 
                 if (rootOptions.Database is null)
                     throw new InvalidOperationException("Database options are missing.");
 
-                // Map Shared options to Data options
                 return new Shared.Data.Options.DatabaseOptions
                 {
                     ConnectionString = rootOptions.Database.ConnectionString,

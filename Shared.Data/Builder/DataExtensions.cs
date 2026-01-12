@@ -54,11 +54,11 @@ namespace Shared.Data.Builder
                 });
 
                 // --- WIRE INTERCEPTORS ---
-                if (options.EnableAuditing)
-                    dbOptions.AddInterceptors(serviceProvider.GetRequiredService<AuditingInterceptor>());
-
                 if (options.EnableSoftDelete)
                     dbOptions.AddInterceptors(serviceProvider.GetRequiredService<SoftDeleteInterceptor>());
+
+                if (options.EnableAuditing)
+                    dbOptions.AddInterceptors(serviceProvider.GetRequiredService<AuditingInterceptor>());
 
                 if (options.EnableSlowQueryLogging)
                     dbOptions.AddInterceptors(serviceProvider.GetRequiredService<SlowQueryInterceptor>());

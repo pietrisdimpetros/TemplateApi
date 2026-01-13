@@ -1,5 +1,6 @@
 using Shared.Composition.Builder;
 using Shared.Composition.Options;
+using Shared.Health.Tags;
 using Shared.Resilience.Options;
 using Shared.Serialization.Options;
 using Shared.Telemetry.Options;
@@ -108,20 +109,20 @@ namespace TemplateApi
             healthBuilder =>
             {
                 // Register your BL checks here
-                healthBuilder.AddCheck<GraphFunctionalityCheck>("graph_functional_test", tags: ["ready"]);
-                healthBuilder.AddCheck<DemoCheck>("demo_test", tags: ["demo", "ready"]);
-                builder.Services.AddHealthChecks().AddCheck<AuditLogHealthCheck>("audit_log_storage");
+                healthBuilder.AddCheck<GraphFunctionalityCheck>("graph_functional_test", tags: [HealthCheckTags.Ready]);
+                healthBuilder.AddCheck<DemoCheck>("demo_test", tags: [HealthCheckTags.Demo, HealthCheckTags.Ready]);
+                builder.Services.AddHealthChecks().AddCheck<AuditLogHealthCheck>("audit_log_storage", tags: [HealthCheckTags.Ready]);
 
                 // Read from your Infrastructure config instead of default connection strings
                 healthBuilder.AddSqlServer(
                     connectionString: builder.Configuration["Infrastructure:Database:ConnectionString"]!,
                     name: "sql_server",
-                    tags: ["ready"]
+                    tags: [HealthCheckTags.Ready]
                 );
             });
 
-     
-       // ============================================================================
+
+            // ============================================================================
             // 2. DATABASE MODULES
             // ============================================================================
             #region Module DbContexts

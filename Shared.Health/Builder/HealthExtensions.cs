@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Shared.Health.Internal;
 using Shared.Health.Models;
 using Shared.Health.Options;
+using Shared.Health.Tags;
 namespace Shared.Health.Builder
 {
     public static class HealthExtensions
@@ -31,7 +32,7 @@ namespace Shared.Health.Builder
             // 3. Add Default "Self" Check (Optional)
             // This is the only "logic" the library owns, and it can be turned off.
             if (options.EnableDefaultHealthCheck)
-                builder.AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"]);
+                builder.AddCheck("self", () => HealthCheckResult.Healthy(), tags: [HealthCheckTags.Live]);
 
             // 4. Add Log Publisher (Optional)
             if (options.EnableLogPublisher)
@@ -51,7 +52,7 @@ namespace Shared.Health.Builder
             // Usually just the "self" check. Fast.
             app.MapHealthChecks(options.LivenessEndpoint, new HealthCheckOptions
             {
-                Predicate = r => r.Tags.Contains("live"),
+                Predicate = r => r.Tags.Contains(HealthCheckTags.Live),
                 ResponseWriter = WriteJsonHealthResponse
             });
 
@@ -60,7 +61,7 @@ namespace Shared.Health.Builder
             // NOTE: Consuming services must add their checks with the "ready" tag.
             app.MapHealthChecks(options.ReadinessEndpoint, new HealthCheckOptions
             {
-                Predicate = r => r.Tags.Contains("ready"),
+                Predicate = r => r.Tags.Contains(HealthCheckTags.Ready),
                 ResponseWriter = WriteJsonHealthResponse
             });
 

@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Shared.Networking.Constants;
 using Shared.Networking.Options;
 using System.Net;
 using System.Net.Http.Headers;
@@ -7,8 +8,6 @@ namespace Shared.Networking.Builder
 {
     public static class NetworkingExtensions
     {
-        private const string ClientName = "ResilientClient";
-
         public static IServiceCollection AddSharedNetworking(
             this IServiceCollection services,
             Action<NetworkingOptions> configure,
@@ -26,7 +25,7 @@ namespace Shared.Networking.Builder
             });
 
             // 1. Configure the Client
-            var clientBuilder = services.AddHttpClient(ClientName, client =>
+            var clientBuilder = services.AddHttpClient(NetworkClientNames.ResilientClient, client =>
             {
                 client.Timeout = Timeout.InfiniteTimeSpan;
                 client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));

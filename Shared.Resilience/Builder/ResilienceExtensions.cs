@@ -28,28 +28,29 @@ namespace Shared.Resilience.Builder
                     UseJitter = true
                 });
 
-                // 3. Dynamic Attempt Timeout Calculation (The Fix)
-                // Logic: Ensure the attempt timeout fits within the Total Timeout allowing for retries + backoff.
-                var totalSlots = options.RetryCount + 1;
-                var safeAttemptTimeout = (options.TotalRequestTimeoutSeconds / (double)totalSlots) * 0.7;
-                var finalAttemptTimeout = Math.Max(2.0, safeAttemptTimeout);
-
-                // 4. Circuit Breaker (Inner Layer)
+                var attemptTimeout = CalculateAttemptTimeout(options);
+                // 3. Circuit Breaker (Inner Layer)
                 pipelineBuilder.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
                 {
                     // Consistency: Sample for 2x the attempt duration
-                    SamplingDuration = TimeSpan.FromSeconds(finalAttemptTimeout * 2),
+                    SamplingDuration = attemptTimeout * 2,
 
                     FailureRatio = 0.5,
                     MinimumThroughput = options.CircuitBreakerThreshold,
                     BreakDuration = TimeSpan.FromSeconds(options.CircuitBreakerBreakDurationSeconds)
                 });
 
-                // 5. Per-Attempt Timeout (Inner-most Layer)
-                pipelineBuilder.AddTimeout(TimeSpan.FromSeconds(finalAttemptTimeout));
+                // 4. Per-Attempt Timeout (Inner-most Layer)
+                pipelineBuilder.AddTimeout(attemptTimeout);
             });
 
             return builder;
+        }
+        private static TimeSpan CalculateAttemptTimeout(ResilienceOptions options)
+        {
+            var totalSlots = options.RetryCount + 1;
+            var safeSeconds = (options.TotalRequestTimeoutSeconds / (double)totalSlots) * 0.7;
+            return TimeSpan.FromSeconds(Math.Max(2.0, safeSeconds));
         }
     }
 }

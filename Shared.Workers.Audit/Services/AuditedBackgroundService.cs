@@ -4,13 +4,19 @@ using System.Diagnostics;
 
 namespace Shared.Workers.Audit.Services
 {
-    public abstract class AuditedBackgroundService(ILogger logger) : BackgroundService
+    // Update Primary Constructor to accept workerName
+    public abstract class AuditedBackgroundService(ILogger logger, string? workerName = null) : BackgroundService
     {
+        // 1. Define the Missing Constant
+        public const string ActivitySourceName = "Shared.Workers.Audit";
+
+        // 2. Define the Missing Property
+        protected string WorkerName { get; } = workerName ?? "UnknownWorker";
+
         protected abstract Task ExecuteIterationAsync(CancellationToken stoppingToken);
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            // 1. Startup Safety: If the service fails to even start (e.g. bad DI), we log critical.
             try
             {
                 logger.LogInformation("Starting audited background service: {Service}", GetType().Name);
@@ -18,32 +24,22 @@ namespace Shared.Workers.Audit.Services
             catch (Exception ex)
             {
                 logger.LogCritical(ex, "Failed to start background service: {Service}", GetType().Name);
-                throw; // Startup failures are fatal, let the host know.
+                throw;
             }
 
-            // 2. The Resilience Loop
-            // This ensures that if the worker crashes (e.g. DB disconnect), it restarts.
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    // Run the actual worker logic
                     await ExecuteIterationAsync(stoppingToken);
-
-                    // Note: If ExecuteIterationAsync returns cleanly (without cancellation), 
-                    // it means the worker finished its job naturally. 
-                    // We break the loop to stop the service gracefully.
                     break;
                 }
                 catch (OperationCanceledException)
                 {
-                    // Normal shutdown signal
                     break;
                 }
                 catch (Exception ex)
                 {
-                    // 3. Standardized Error Handling (The "ProblemDetails" for Workers)
-                    // We structure this object so it appears cleanly in your SQL Logs
                     var problem = new
                     {
                         Type = ex.GetType().FullName,
@@ -56,11 +52,7 @@ namespace Shared.Workers.Audit.Services
                         TraceId = Activity.Current?.TraceId.ToString()
                     };
 
-                    // Log as Error. This flows to SqlLogProcessor -> Database
                     logger.LogError(ex, "Worker Operation Failed: {@Problem}", problem);
-
-                    // 4. Circuit Breaker / Cool-down
-                    // Pause execution to prevent CPU/DB spamming during outages
                     logger.LogWarning("Pausing service {Service} for 1 minute due to error.", GetType().Name);
 
                     try
@@ -75,6 +67,14 @@ namespace Shared.Workers.Audit.Services
             }
 
             logger.LogInformation("Audited background service stopped: {Service}", GetType().Name);
+        }
+
+        // 3. Define the Missing Helper Method
+        protected async Task ExecuteTraceableAsync(string activityName, Func<CancellationToken, Task> action, CancellationToken stoppingToken)
+        {
+            // Simple wrapper to support the logic in AuditedPeriodicService
+            using var activity = new ActivitySource(ActivitySourceName).StartActivity(activityName);
+            await action(stoppingToken);
         }
     }
 }

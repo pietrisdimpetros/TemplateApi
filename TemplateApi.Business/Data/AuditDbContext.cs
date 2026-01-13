@@ -9,7 +9,7 @@ namespace TemplateApi.Business.Data
     {
         protected override string Schema => AuditConstants.Schema;
 
-        public DbSet<LogEntry> Logs { get; set; }
+        public DbSet<LogEntry> Logs { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

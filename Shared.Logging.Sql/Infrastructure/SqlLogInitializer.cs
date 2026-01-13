@@ -28,10 +28,8 @@ namespace Shared.Logging.Sql.Infrastructure
             // 2. Strict Validation
             if (string.IsNullOrWhiteSpace(connectionString))
             {
-                var error = "SQL Logging is enabled, but no SQL Database connection could be resolved from the Service Provider. " +
-                            "Ensure a database module (like Shared.Data) is registered.";
-                logger.LogCritical(error);
-                throw new InvalidOperationException(error);
+                logger.LogCritical("SQL Logging is enabled, but no SQL Database connection could be resolved from the Service Provider. Ensure a database module (like Shared.Data) is registered.");
+                throw new InvalidOperationException("SQL Logging is enabled, but no SQL Database connection could be resolved from the Service Provider. Ensure a database module (like Shared.Data) is registered.");
             }
 
             // 3. Provisioning (Ensure Exists)
@@ -78,9 +76,9 @@ namespace Shared.Logging.Sql.Infrastructure
                 }
                 if (logger.IsEnabled(LogLevel.Information))
                 {
-                    logger.LogInformation("SQL Logging Infrastructure Ready. Target: {Schema}.{Table}",
+                    logger.LogInformation("SQL Logging Infrastructure Ready. Target: {Schema}.{Table}", _options.SchemaName, _options.TableName);
                 }
-                _options.SchemaName, _options.TableName);
+                
             }
             catch (Exception ex)
             {

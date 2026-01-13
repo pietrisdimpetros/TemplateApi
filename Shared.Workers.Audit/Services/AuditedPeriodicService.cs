@@ -2,16 +2,14 @@
 
 namespace Shared.Workers.Audit.Services
 {
-    /// <summary>
-    /// A standardized host for recurring interval tasks.
-    /// </summary>
     public abstract class AuditedPeriodicService(
         ILogger logger,
         string workerName) : AuditedBackgroundService(logger, workerName)
     {
         protected abstract TimeSpan Period { get; }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        // 1. This implements the abstract method from the Base Class
+        protected override async Task ExecuteIterationAsync(CancellationToken stoppingToken)
         {
             using var timer = new PeriodicTimer(Period);
 
@@ -22,7 +20,8 @@ namespace Shared.Workers.Audit.Services
             {
                 while (await timer.WaitForNextTickAsync(stoppingToken))
                 {
-                    await ExecuteTraceableAsync($"{WorkerName}-Tick", ExecuteIterationAsync, stoppingToken);
+                    // Calls the helper we added to the base class
+                    await ExecuteTraceableAsync($"{WorkerName}-Tick", ExecuteTickAsync, stoppingToken);
                 }
             }
             catch (OperationCanceledException)
@@ -32,6 +31,8 @@ namespace Shared.Workers.Audit.Services
             }
         }
 
-        protected abstract Task ExecuteIterationAsync(CancellationToken stoppingToken);
+        // 2. Define a NEW abstract method for child classes (like DataCleanupWorker) to use
+        // Rename this from ExecuteIterationAsync to ExecuteTickAsync to avoid collision
+        protected abstract Task ExecuteTickAsync(CancellationToken stoppingToken);
     }
 }

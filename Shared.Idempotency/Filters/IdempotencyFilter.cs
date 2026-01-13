@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shared.Idempotency.Attributes;
 using Shared.Idempotency.Options;
+using System.Security.Claims; // - Add this namespace
 using System.Text.Json;
 
 namespace Shared.Idempotency.Filters
@@ -20,7 +21,6 @@ namespace Shared.Idempotency.Filters
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             // 1. Check if the attribute is present
-            // We only run this logic if the [Idempotent] attribute is explicitly used.
             var isIdempotent = context.ActionDescriptor.EndpointMetadata
                 .Any(m => m is IdempotentAttribute);
 
@@ -42,15 +42,22 @@ namespace Shared.Idempotency.Filters
                 return;
             }
 
-            var cacheKey = $"Idempotency:{idempKey}";
+            // Try to get a unique user identifier (Sub/NameIdentifier is standard for OAuth/JWT)
+            // Fallback to Identity.Name, and finally "anonymous" if unauthenticated.
+            var userId = context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                         ?? context.HttpContext.User.Identity?.Name
+                         ?? "anonymous";
+
+            // Composite Key: "Idempotency:{UserID}:{Key}"
+            // This ensures User A sending key "123" does not collide with User B sending key "123"
+            var cacheKey = $"Idempotency:{userId}:{idempKey}";
 
             // 3. CHECK CACHE (The "Short-Circuit")
             var cachedData = await cache.GetStringAsync(cacheKey);
             if (!string.IsNullOrEmpty(cachedData))
             {
-                logger.LogInformation("Idempotency Hit: Returning cached response for Key {Key}", idempKey);
+                logger.LogInformation("Idempotency Hit: Returning cached response for Key {Key} (User: {User})", idempKey, userId);
 
-                // Deserialize the saved response
                 var responseModel = JsonSerializer.Deserialize<IdempotencyModel>(cachedData);
                 if (responseModel is not null)
                 {

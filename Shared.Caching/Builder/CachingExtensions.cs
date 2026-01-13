@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Shared.Caching.Options;
 using Shared.Caching.Services;
 using StackExchange.Redis;
-using System.Text.Json;
 
 namespace Shared.Caching.Builder
 {
@@ -22,6 +22,7 @@ namespace Shared.Caching.Builder
             configure(options);
             services.AddSingleton(options);
 
+            // 1. Configure L2 Cache (Redis) & HybridCache
             if (!string.IsNullOrWhiteSpace(options.ConnectionString))
             {
                 // 1. Production / Distributed (Redis)
@@ -36,42 +37,26 @@ namespace Shared.Caching.Builder
                 // 2. Development / Single Instance (In-Memory)
                 services.AddDistributedMemoryCache();
             }
-
-            // --- CHANGED: Explicitly configure Cache Serialization Stability ---
-            services.AddSingleton<ICacheService>(sp =>
+            // 2. Hybrid Cache
+            services.AddHybridCache(hybridOptions =>
             {
-                var distributedCache = sp.GetRequiredService<Microsoft.Extensions.Caching.Distributed.IDistributedCache>();
-                var cacheOptions = sp.GetRequiredService<IOptions<CachingOptions>>();
-
-                // 1. Get the Global Options to reuse the registered AOT Contexts (TypeResolvers)
-                // We want the knowledge of *types* (Product, WeatherForecast) from the global app,
-                // but we DO NOT want the global *formatting policies*.
-                var globalJsonOptions = sp.GetRequiredService<JsonSerializerOptions>();
-
-                // 2. Create a Dedicated Options instance for Persistence
-                var stableOptions = new JsonSerializerOptions
+                hybridOptions.DefaultEntryOptions = new HybridCacheEntryOptions
                 {
-                    // FORCE CamelCase. Even if the API changes to SnakeCase for example, 
-                    // the data in Redis remains readable and consistent.
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-
-                    // Standard persistence settings
-                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-                    WriteIndented = false,
-
-                    // REUSE the TypeInfoResolver from global config so Source Generators still work
-                    TypeInfoResolver = globalJsonOptions.TypeInfoResolver
+                    Expiration = TimeSpan.FromMinutes(options.DefaultExpirationMinutes),
+                    LocalCacheExpiration = TimeSpan.FromMinutes(options.DefaultExpirationMinutes) // L1
                 };
-
-                stableOptions.MakeReadOnly();
-
-                return new CacheService(distributedCache, cacheOptions, stableOptions);
             });
-            // ------------------------------------------------------------------
 
+            // 3. Register the Service Wrapper
+            // We pass the global serializers to ensure AOT contexts are respected,
+            // but HybridCache manages the actual serialization flow.
+            services.AddSingleton<ICacheService, CacheService>();
+
+            // 4. Data Protection (Persisting Keys to Redis)
+            // This remains separate from HybridCache as it deals with specific Security keys.
             if (options.DataProtection != null &&
                  options.DataProtection.Enabled &&
-                 !string.IsNullOrWhiteSpace(options.ConnectionString)) // Don't try to persist keys if using Memory
+                 !string.IsNullOrWhiteSpace(options.ConnectionString))
             {
                 var redisConnStr = !string.IsNullOrEmpty(options.DataProtection.ConnectionStringOverride)
                     ? options.DataProtection.ConnectionStringOverride

@@ -74,24 +74,28 @@ namespace TemplateApi.Controllers
         public async Task<IActionResult> TestCache()
         {
             const string key = "test-key";
-            var now = DateTime.UtcNow;
 
-            // 1. Write to Cache
-            logger.LogInformation("Writing to cache...");
-            await cache.SetAsync(key, new { Message = "Hello Redis", Timestamp = now }, TimeSpan.FromMinutes(1));
-
-            // 2. Read from Cache
-            logger.LogInformation("Reading from cache...");
-            var cachedValue = await cache.GetAsync<JsonElement>(key);
+            // ONE STEP: "Get this key. If you don't have it, run this function to make it."
+            var cachedValue = await cache.GetOrCreateAsync(
+                key,
+                factory: async (ct) =>
+                {
+                    // logic to create data (e.g. DB query)
+                    // This ONLY runs if the cache is empty!
+                    logger.LogInformation("Cache miss. Generating new value...");
+                    return new { Message = "Hello HybridCache", Timestamp = DateTime.UtcNow };
+                },
+                expiration: TimeSpan.FromMinutes(1),
+                cancellationToken: HttpContext.RequestAborted
+            );
 
             return Ok(new
             {
                 Status = "Success",
-                Source = "Redis",
+                Source = "HybridCache",
                 RetrievedData = cachedValue
             });
         }
-
         /// <summary>
         /// Verifies Shared.Networking (Resilience, Header Propagation).
         /// Calls an external URL using the "ResilientClient".
@@ -127,9 +131,10 @@ namespace TemplateApi.Controllers
         [Idempotent] // <--- Prevents double-creation
         public IActionResult CreateForecast([FromBody] WeatherForecast forecast)
         {
+            var json = JsonSerializer.Serialize(forecast);
             // If client sends "Idempotency-Key: 123", this runs ONCE.
             // The second time they send "123", they get the cached 200 OK immediately.
-            return Ok(new { Id = Guid.CreateVersion7(), Status = "Created" });
+            return Ok(new { Id = Guid.CreateVersion7(), Status = "Created" , json});
         }
     }
 }

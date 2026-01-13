@@ -1,7 +1,9 @@
 using Shared.Composition.Builder;
+using Shared.Composition.Options;
 using Shared.Resilience.Options;
 using Shared.Serialization.Options;
 using Shared.Telemetry.Options;
+using TemplateApi.Business.Constants;
 using TemplateApi.Business.Health.Checks;
 using TemplateApi.Serialization;
 
@@ -108,6 +110,7 @@ namespace TemplateApi
                 // Register your BL checks here
                 healthBuilder.AddCheck<GraphFunctionalityCheck>("graph_functional_test", tags: ["ready"]);
                 healthBuilder.AddCheck<DemoCheck>("demo_test", tags: ["demo", "ready"]);
+                builder.Services.AddHealthChecks().AddCheck<AuditLogHealthCheck>("audit_log_storage");
 
                 // Read from your Infrastructure config instead of default connection strings
                 healthBuilder.AddSqlServer(
@@ -132,6 +135,19 @@ namespace TemplateApi
 
             #region Custom Workers
             builder.Services.AddHostedService<TemplateApi.Business.Workers.Audit.DataCleanupWorker>();
+            #endregion
+
+            #region Post Configure
+
+            builder.Services.PostConfigure<SharedInfrastructureOptions>(options =>
+            {
+                if (options.SqlLogging != null)
+                {
+                    options.SqlLogging.SchemaName = AuditConstants.Schema;
+                    options.SqlLogging.TableName = AuditConstants.Table;
+                }
+            });
+
             #endregion
             // Add Controllers
             builder.Services.AddControllers();

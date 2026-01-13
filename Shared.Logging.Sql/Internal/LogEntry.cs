@@ -1,6 +1,6 @@
 ﻿namespace Shared.Logging.Sql.Internal
 {
-    internal record LogEntry(
+    public record LogEntry(
         DateTimeOffset Timestamp,
         string Level,
         string Category,

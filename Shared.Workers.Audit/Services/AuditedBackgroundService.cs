@@ -4,50 +4,77 @@ using System.Diagnostics;
 
 namespace Shared.Workers.Audit.Services
 {
-    /// <summary>
-    /// Extends BackgroundService to enforce an Audit Context.
-    /// This ensures that any data operations performed by the worker are correctly attributed
-    /// in the 'CreatedBy'/'ModifiedBy' fields, rather than appearing as 'System'.
-    /// </summary>
-    public abstract class AuditedBackgroundService(
-          ILogger logger,
-          string workerName) : BackgroundService
+    public abstract class AuditedBackgroundService(ILogger logger) : BackgroundService
     {
-        public const string ActivitySourceName = "Shared.Workers.Audit";
-        protected static readonly ActivitySource ActivitySource = new(ActivitySourceName);
+        protected abstract Task ExecuteIterationAsync(CancellationToken stoppingToken);
 
-        // Store the name provided in the constructor
-        protected string WorkerName { get; } = workerName;
-
-        /// <summary>
-        /// Executes the provided workload inside a traceable Activity Scope.
-        /// </summary>
-        protected async Task ExecuteTraceableAsync(string operationName, Func<CancellationToken, Task> workload, CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            // 1. Start the Context Bubble
-            // This Activity flows via AsyncLocal, so any EF Core Interceptor downstream can see it.
-            using var activity = ActivitySource.StartActivity(operationName);
+            // 1. Startup Safety: If the service fails to even start (e.g. bad DI), we log critical.
+            try
+            {
+                logger.LogInformation("Starting audited background service: {Service}", GetType().Name);
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical(ex, "Failed to start background service: {Service}", GetType().Name);
+                throw; // Startup failures are fatal, let the host know.
+            }
 
-            // 2. Set the Identity Tag (The "Key" to Native Auditing)
-            var userId = $"Worker-{WorkerName}";
-            activity?.SetTag("enduser.id", userId);
-
-            // 3. Log with Scope for debugging clarity
-            using (logger.BeginScope(new Dictionary<string, object> { ["Worker"] = WorkerName, ["User"] = userId }))
+            // 2. The Resilience Loop
+            // This ensures that if the worker crashes (e.g. DB disconnect), it restarts.
+            while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
-                    logger.LogInformation("Starting traceable operation: {Operation}", operationName);
-                    await workload(stoppingToken);
-                    logger.LogInformation("Completed traceable operation: {Operation}", operationName);
+                    // Run the actual worker logic
+                    await ExecuteIterationAsync(stoppingToken);
+
+                    // Note: If ExecuteIterationAsync returns cleanly (without cancellation), 
+                    // it means the worker finished its job naturally. 
+                    // We break the loop to stop the service gracefully.
+                    break;
+                }
+                catch (OperationCanceledException)
+                {
+                    // Normal shutdown signal
+                    break;
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Failed traceable operation: {Operation}", operationName);
-                    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                    throw; // Let the Host handle the crash policy
+                    // 3. Standardized Error Handling (The "ProblemDetails" for Workers)
+                    // We structure this object so it appears cleanly in your SQL Logs
+                    var problem = new
+                    {
+                        Type = ex.GetType().FullName,
+                        Title = "Background Worker Failure",
+                        Status = 500,
+                        Detail = ex.Message,
+                        Instance = GetType().Name,
+                        Timestamp = DateTimeOffset.UtcNow,
+                        Machine = Environment.MachineName,
+                        TraceId = Activity.Current?.TraceId.ToString()
+                    };
+
+                    // Log as Error. This flows to SqlLogProcessor -> Database
+                    logger.LogError(ex, "Worker Operation Failed: {@Problem}", problem);
+
+                    // 4. Circuit Breaker / Cool-down
+                    // Pause execution to prevent CPU/DB spamming during outages
+                    logger.LogWarning("Pausing service {Service} for 1 minute due to error.", GetType().Name);
+
+                    try
+                    {
+                        await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
                 }
             }
+
+            logger.LogInformation("Audited background service stopped: {Service}", GetType().Name);
         }
     }
 }

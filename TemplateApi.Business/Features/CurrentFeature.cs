@@ -1,8 +1,17 @@
 ﻿namespace TemplateApi.Business.Features
 {
-    public class CurrentFeature
+    public static class CurrentFeature
     {
-        public const string NewGraphCheck = "NewGraphCheck";
-        public const string BetaDashboard = "BetaDashboard";
+        public const string NewGraphCheck = nameof(NewGraphCheck);
+        public const string BetaDashboard = nameof(BetaDashboard);
+
+        // 3. Vectorized validation for hot paths (e.g. middleware)
+        public static readonly System.Buffers.SearchValues<string> AllFeatures =
+            System.Buffers.SearchValues.Create(
+[
+                    NewGraphCheck, 
+                    BetaDashboard
+                ], 
+                StringComparison.Ordinal);
     }
 }

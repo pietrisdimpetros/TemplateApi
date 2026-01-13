@@ -129,7 +129,7 @@ namespace TemplateApi.Controllers
         {
             // If client sends "Idempotency-Key: 123", this runs ONCE.
             // The second time they send "123", they get the cached 200 OK immediately.
-            return Ok(new { Id = Guid.NewGuid(), Status = "Created" });
+            return Ok(new { Id = Guid.CreateVersion7(), Status = "Created" });
         }
     }
 }

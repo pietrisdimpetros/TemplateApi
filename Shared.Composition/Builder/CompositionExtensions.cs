@@ -14,6 +14,7 @@ namespace Shared.Composition.Builder
         [
             // 1. Observability & Diagnostics (Start early to catch startup issues)
             new LoggingInstaller(),
+            new SqlLoggingInstaller(),
             new ErrorHandlingInstaller(),
             new TelemetryInstaller(),
 

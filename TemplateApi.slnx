@@ -10,6 +10,7 @@
   <Project Path="Shared.Health/Shared.Health.csproj" />
   <Project Path="Shared.Idempotency/Shared.Idempotency.csproj" Id="b7503d18-fe5d-434d-83d4-8d40346ec160" />
   <Project Path="Shared.Identity/Shared.Identity.csproj" Id="807b5edb-61d4-49e7-929e-cdcdadf5fffc" />
+  <Project Path="Shared.Logging.Sql/Shared.Logging.Sql.csproj" Id="e23bbf1c-dff5-4b11-be1b-68a0f1afe397" />
   <Project Path="Shared.Logging/Shared.Logging.csproj" />
   <Project Path="Shared.Networking/Shared.Networking.csproj" />
   <Project Path="Shared.RateLimiting/Shared.RateLimiting.csproj" Id="36d98d1b-81ce-4b76-854a-dba6f036d464" />

@@ -31,6 +31,7 @@
 		<ProjectReference Include="..\Shared.Identity\Shared.Identity.csproj" />
 		<ProjectReference Include="..\Shared.Workers.Audit\Shared.Workers.Audit.csproj" />
 		<ProjectReference Include="..\Shared.Idempotency\Shared.Idempotency.csproj" />
+		<ProjectReference Include="..\Shared.Logging.Sql\Shared.Logging.Sql.csproj" />
 	</ItemGroup>
 
 </Project>

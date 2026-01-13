@@ -6,6 +6,7 @@ using Shared.Health.Options;
 using Shared.Idempotency.Options;
 using Shared.Identity.Options;
 using Shared.Logging.Options;
+using Shared.Logging.Sql.Options;
 using Shared.Networking.Options;
 using Shared.RateLimiting.Options;
 using Shared.Resilience.Options;
@@ -40,5 +41,6 @@ namespace Shared.Composition.Options
         public DatabaseOptions? Database { get; set; }
         public IdentityInfrastructureOptions? Identity { get; set; }
         public IdempotencyOptions? Idempotency { get; set; }
+        public SqlLoggingOptions? SqlLogging { get; set; }
     }
 }

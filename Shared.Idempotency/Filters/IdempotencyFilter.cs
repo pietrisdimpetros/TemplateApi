@@ -30,6 +30,14 @@ namespace Shared.Idempotency.Filters
                 return;
             }
 
+            // Reject anonymous users. Idempotency requires a stable User Identity to form a unique key.
+            if (context.HttpContext.User.Identity?.IsAuthenticated != true)
+            {
+                // Return 401 (Unauthorized) or 403 (Forbidden) depending on your auth style.
+                context.Result = new UnauthorizedObjectResult(new { Error = "Idempotency is only supported for authenticated users." });
+                return;
+            }
+
             // 2. Check for Header
             if (!context.HttpContext.Request.Headers.TryGetValue(_options.HeaderName, out var idempKey) || string.IsNullOrWhiteSpace(idempKey))
             {

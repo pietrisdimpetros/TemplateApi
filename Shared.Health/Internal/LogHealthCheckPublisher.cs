@@ -19,7 +19,7 @@ namespace Shared.Health.Internal
         {
             // Start a native Activity Scope
             // The Interceptor in Shared.Data will automatically "see" this tag via Activity.Current
-            using var activity = ActivitySource.StartActivity("HealthCheckPublisher");
+            using var activity = ActivitySource.StartActivity("HealthCheckPublisher", ActivityKind.Internal);
             activity?.AddTag("enduser.id", "Health-Probe-Service");
             var status = report.Status;
 

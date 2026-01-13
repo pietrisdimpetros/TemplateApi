@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shared.Logging.Sql.Abstractions;
 using Shared.Logging.Sql.Options;
+using System.Text.RegularExpressions;
 
 namespace Shared.Logging.Sql.Infrastructure
 {
@@ -21,6 +22,14 @@ namespace Shared.Logging.Sql.Infrastructure
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             logger.LogInformation("Verifying SQL Database injection for Logging...");
+
+            // Allow only alphanumeric characters and underscores.
+            // This prevents "]; DROP TABLE..." attacks.
+            if (!Regex.IsMatch(_options.SchemaName, "^[a-zA-Z0-9_]+$") ||
+                !Regex.IsMatch(_options.TableName, "^[a-zA-Z0-9_]+$"))
+            {
+                throw new ArgumentException("SQL Logging Schema or Table name contains invalid characters. Only alphanumeric and underscores are allowed.");
+            }
 
             // 1. Resolve Connection String
             var connectionString = await connectionSource.GetConnectionStringAsync(cancellationToken);

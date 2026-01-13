@@ -8,16 +8,18 @@ namespace Shared.Composition.Installers
     {
         public void Install(IServiceCollection services, SharedInfrastructureOptions rootOptions)
         {
-            if (rootOptions.Logging is null)
+            if (rootOptions.Identity is null)
                 return;
+
             services.AddSharedIdentity(opt =>
             {
-                opt.ConnectionString = rootOptions?.Database?.ConnectionString??throw new Exception("Database connection string is not configured.");
-                opt.EnableDetailedErrors = rootOptions.Database.EnableDetailedErrors;
-                opt.SchemaName = "identity";
-                opt.MaxRetryCount = rootOptions.Database.MaxRetryCount;
-                opt.MaxRetryDelaySeconds = rootOptions.Database.MaxRetryDelaySeconds;
-                opt.CommandTimeoutSeconds = rootOptions.Database.CommandTimeoutSeconds;
+                opt.ConnectionString = rootOptions.Identity.ConnectionString;
+                opt.SchemaName = rootOptions.Identity.SchemaName;
+
+                opt.MaxRetryCount = rootOptions.Identity.MaxRetryCount;
+                opt.MaxRetryDelaySeconds = rootOptions.Identity.MaxRetryDelaySeconds;
+                opt.CommandTimeoutSeconds = rootOptions.Identity.CommandTimeoutSeconds;
+                opt.EnableDetailedErrors = rootOptions.Identity.EnableDetailedErrors;
             });
         }
     }

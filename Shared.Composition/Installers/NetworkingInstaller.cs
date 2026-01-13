@@ -9,8 +9,10 @@ namespace Shared.Composition.Installers
     {
         public void Install(IServiceCollection services, SharedInfrastructureOptions rootOptions)
         {
-            if (rootOptions.Networking is null)
+            if (rootOptions.Networking is null) 
                 return;
+            if (rootOptions.Resilience is null) 
+                throw new InvalidOperationException("Resilience options must be configured when Networking is enabled.");
             services.AddSharedNetworking(
                     // 1. Configure Basic Options
                     opt =>

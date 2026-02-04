@@ -61,38 +61,58 @@ namespace Shared.Logging.Sql.Services
 
         private async Task BulkInsertAsync(List<LogEntry> logs, CancellationToken ct)
         {
-            // Resolve connection string fresh every time (handles rotation/dynamic changes)
             var connectionString = await connectionSource.GetConnectionStringAsync(ct);
-
             if (string.IsNullOrWhiteSpace(connectionString)) return;
 
-            using var conn = new SqlConnection(connectionString);
-            await conn.OpenAsync(ct);
-
-            using var transaction = conn.BeginTransaction();
-
-            var sql = $@"
-                INSERT INTO [{_options.SchemaName}].[{_options.TableName}] 
-                (Timestamp, Level, SourceContext, Message, Exception, TraceId, SpanId, MachineName)
-                VALUES (@ts, @lvl, @src, @msg, @ex, @trc, @spn, @mac)";
+            // 1. Prepare Data in Memory (Zero Network IO)
+            // using DataTable is efficient enough for batch sizes < 10k
+            using var table = new DataTable();
+            table.Columns.Add("Timestamp", typeof(DateTimeOffset));
+            table.Columns.Add("Level", typeof(string));
+            table.Columns.Add("SourceContext", typeof(string));
+            table.Columns.Add("Message", typeof(string));
+            table.Columns.Add("Exception", typeof(string));
+            table.Columns.Add("TraceId", typeof(string));
+            table.Columns.Add("SpanId", typeof(string));
+            table.Columns.Add("MachineName", typeof(string));
 
             foreach (var log in logs)
             {
-                using var cmd = new SqlCommand(sql, conn, transaction);
-
-                cmd.Parameters.Add("@ts", SqlDbType.DateTimeOffset).Value = log.Timestamp;
-                cmd.Parameters.Add("@lvl", SqlDbType.NVarChar, 20).Value = log.Level;
-                cmd.Parameters.Add("@src", SqlDbType.NVarChar, 256).Value = log.Category ?? "";
-                cmd.Parameters.Add("@msg", SqlDbType.NVarChar, -1).Value = log.Message;
-                cmd.Parameters.Add("@ex", SqlDbType.NVarChar, -1).Value = (object?)log.Exception ?? DBNull.Value;
-                cmd.Parameters.Add("@trc", SqlDbType.NVarChar, 100).Value = (object?)log.TraceId ?? DBNull.Value;
-                cmd.Parameters.Add("@spn", SqlDbType.NVarChar, 100).Value = (object?)log.SpanId ?? DBNull.Value;
-                cmd.Parameters.Add("@mac", SqlDbType.NVarChar, 100).Value = (object?)log.MachineName ?? DBNull.Value;
-
-                await cmd.ExecuteNonQueryAsync(ct);
+                table.Rows.Add(
+                    log.Timestamp,
+                    log.Level,
+                    log.Category ?? string.Empty,
+                    log.Message,
+                    log.Exception, // Assumed string or null
+                    log.TraceId,
+                    log.SpanId,
+                    log.MachineName
+                );
             }
 
-            await transaction.CommitAsync(ct);
+            // 2. Stream to SQL Server (Single Network Call)
+            // UseInternalTransaction: More efficient than external SqlTransaction for bulk copies
+            using var bulk = new SqlBulkCopy(connectionString, SqlBulkCopyOptions.TableLock | SqlBulkCopyOptions.UseInternalTransaction);
+
+            bulk.DestinationTableName = $"[{_options.SchemaName}].[{_options.TableName}]";
+            bulk.BulkCopyTimeout = 60; // Increase timeout for large batches
+
+            // Explicit Mappings ensure safety against column reordering
+            foreach (DataColumn col in table.Columns)
+            {
+                bulk.ColumnMappings.Add(col.ColumnName, col.ColumnName);
+            }
+
+            try
+            {
+                await bulk.WriteToServerAsync(table, ct);
+            }
+            catch (Exception ex)
+            {
+                // Fallback or specific error handling (e.g., dropping bad batch vs retry)
+                logger.LogError(ex, "Bulk insert failed for {Count} logs.", logs.Count);
+                throw; // Let the outer loop retry logic handle the pause
+            }
         }
     }
 }

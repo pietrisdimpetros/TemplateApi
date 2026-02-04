@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Shared.Security.Middleware;
 using Shared.Security.Options;
 namespace Shared.Security.Builder
 {
@@ -70,6 +72,13 @@ namespace Shared.Security.Builder
             });
 
             return services;
+        }
+    }
+    public static class SecurityAppExtensions
+    {
+        public static IApplicationBuilder UseSecurityHeaders(this IApplicationBuilder app)
+        {
+            return app.UseMiddleware<SecurityHeadersMiddleware>();
         }
     }
 }

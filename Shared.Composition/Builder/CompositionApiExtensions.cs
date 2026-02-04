@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Shared.Composition.Options;
 using Shared.Health.Builder;
 using Shared.RateLimiting.Builder;
+using Shared.Security.Builder;
 using Shared.Swagger.Builder;
 using Shared.WebPerformance.Builder;
 namespace Shared.Composition.Builder
@@ -33,6 +34,7 @@ namespace Shared.Composition.Builder
             // 4. Security Pipeline
             if (options.Security is not null)
             {
+                app.UseSecurityHeaders();
                 app.UseHttpsRedirection(); // Standard safety
                 app.UseCors("AllowedOrigins"); // The policy name defined in Shared.Security
                 app.UseAuthentication();

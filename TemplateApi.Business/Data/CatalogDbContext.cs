@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Shared.Data.Abstractions;
+using TemplateApi.Business.Constants;
 using TemplateApi.Business.Entities;
 
 namespace TemplateApi.Business.Data
@@ -8,7 +9,7 @@ namespace TemplateApi.Business.Data
         : ModuleDbContext(options)
     {
         // 1. Define the Schema strictly
-        protected override string Schema => "catalog";
+        protected override string Schema => ModuleSchemas.Catalog;
 
         public DbSet<Product>? Products { get; set; }
 

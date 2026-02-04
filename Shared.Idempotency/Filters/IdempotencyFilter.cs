@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shared.Idempotency.Attributes;
 using Shared.Idempotency.Options;
-using System.Security.Claims; // - Add this namespace
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace Shared.Idempotency.Filters
@@ -20,7 +20,9 @@ namespace Shared.Idempotency.Filters
 
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
-            // 1. Check if the attribute is present
+            // ---------------------------------------------------------------------------
+            // 1. PRE-CHECKS
+            // ---------------------------------------------------------------------------
             var isIdempotent = context.ActionDescriptor.EndpointMetadata
                 .Any(m => m is IdempotentAttribute);
 
@@ -30,15 +32,14 @@ namespace Shared.Idempotency.Filters
                 return;
             }
 
-            // Reject anonymous users. Idempotency requires a stable User Identity to form a unique key.
+            // Reject anonymous users. Idempotency requires a stable User Identity.
             if (context.HttpContext.User.Identity?.IsAuthenticated != true)
             {
-                // Return 401 (Unauthorized) or 403 (Forbidden) depending on your auth style.
                 context.Result = new UnauthorizedObjectResult(new { Error = "Idempotency is only supported for authenticated users." });
                 return;
             }
 
-            // 2. Check for Header
+            // Check for Header
             if (!context.HttpContext.Request.Headers.TryGetValue(_options.HeaderName, out var idempKey) || string.IsNullOrWhiteSpace(idempKey))
             {
                 if (_options.EnforceHeader)
@@ -50,21 +51,30 @@ namespace Shared.Idempotency.Filters
                 return;
             }
 
-            // Try to get a unique user identifier (Sub/NameIdentifier is standard for OAuth/JWT)
-            // Fallback to Identity.Name, and finally "anonymous" if unauthenticated.
+            // Resolve User ID
             var userId = context.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
                          ?? context.HttpContext.User.Identity?.Name
                          ?? "anonymous";
 
-            // Composite Key: "Idempotency:{UserID}:{Key}"
-            // This ensures User A sending key "123" does not collide with User B sending key "123"
+            // ---------------------------------------------------------------------------
+            // 2. CACHE KEYS
+            // ---------------------------------------------------------------------------
+            // Primary Key: Stores the final result
             var cacheKey = $"Idempotency:{userId}:{idempKey}";
 
-            // 3. CHECK CACHE (The "Short-Circuit")
+            // Lock Key: Indicates a request is currently IN FLIGHT
+            var lockKey = $"{cacheKey}:processing";
+
+            // ---------------------------------------------------------------------------
+            // 3. CHECK EXISTING RESULT (Happy Path)
+            // ---------------------------------------------------------------------------
             var cachedData = await cache.GetStringAsync(cacheKey);
             if (!string.IsNullOrEmpty(cachedData))
             {
-                logger.LogInformation("Idempotency Hit: Returning cached response for Key {Key} (User: {User})", idempKey, userId);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Idempotency Hit: Returning cached response for Key {Key} (User: {User})", idempKey, userId);
+                }
 
                 var responseModel = JsonSerializer.Deserialize<IdempotencyModel>(cachedData);
                 if (responseModel is not null)
@@ -77,20 +87,63 @@ namespace Shared.Idempotency.Filters
                 }
             }
 
-            // 4. EXECUTE (The "Real Work")
-            var executedContext = await next();
-
-            // 5. CACHE RESULT (If successful)
-            if (executedContext.Result is ObjectResult objectResult && objectResult.StatusCode is >= 200 and < 300)
+            // ---------------------------------------------------------------------------
+            // 4. CHECK & ACQUIRE LOCK (Concurrency Protection)
+            // ---------------------------------------------------------------------------
+            var isProcessing = !string.IsNullOrEmpty(await cache.GetStringAsync(lockKey));
+            if (isProcessing)
             {
-                var model = new IdempotencyModel(objectResult.StatusCode ?? 200, objectResult.Value);
-
-                var serialized = JsonSerializer.Serialize(model);
-
-                await cache.SetStringAsync(cacheKey, serialized, new DistributedCacheEntryOptions
+                if (logger.IsEnabled(LogLevel.Warning))
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_options.ExpirationMinutes)
+                    logger.LogWarning("Idempotency Conflict: Request {Key} is already being processed.", idempKey!);
+                }
+                context.Result = new ConflictObjectResult(new
+                {
+                    Error = "A request with this Idempotency-Key is currently being processed.",
+                    Code = "IDEMPOTENCY_CONFLICT"
                 });
+                return;
+            }
+
+            // Set the "Processing" lock.
+            // TTL: Short (e.g., 2 minutes). Just enough to cover the execution time.
+            // Prevents deadlocks if the server crashes mid-request.
+            await cache.SetStringAsync(lockKey, DateTime.UtcNow.ToString("O"), new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2)
+            });
+
+            try
+            {
+                // ---------------------------------------------------------------------------
+                // 5. EXECUTE (The "Real Work")
+                // ---------------------------------------------------------------------------
+                var executedContext = await next();
+
+                // ---------------------------------------------------------------------------
+                // 6. CACHE RESULT (If successful)
+                // ---------------------------------------------------------------------------
+                // Only cache successful or business-logic failures (2xx, 4xx). 
+                // Do not cache 500s, so the client can retry safely.
+                if (executedContext.Result is ObjectResult objectResult &&
+                    objectResult.StatusCode is >= 200 and < 500) // Updated to include 4xx
+                {
+                    var model = new IdempotencyModel(objectResult.StatusCode ?? 200, objectResult.Value);
+                    var serialized = JsonSerializer.Serialize(model);
+
+                    await cache.SetStringAsync(cacheKey, serialized, new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(_options.ExpirationMinutes)
+                    });
+                }
+            }
+            finally
+            {
+                // ---------------------------------------------------------------------------
+                // 7. RELEASE LOCK
+                // ---------------------------------------------------------------------------
+                // Always remove the processing lock, even if the action failed.
+                await cache.RemoveAsync(lockKey);
             }
         }
     }

@@ -19,10 +19,6 @@ namespace Shared.Composition.Installers
             services.AddControllers(mvcOptions =>
             {
                 // Global Filter Registration
-                // If Idempotency is enabled, we apply the filter globally here
-                // (or strictly rely on the Attribute, depending on your preference).
-                if (options.Idempotency is not null)
-                    mvcOptions.Filters.Add<IdempotencyFilter>();
             });
         }
     }

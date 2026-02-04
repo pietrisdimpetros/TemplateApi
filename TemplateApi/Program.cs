@@ -128,9 +128,9 @@ namespace TemplateApi
             #region Module DbContexts
             // a. Register Catalog Module (Schema: catalog)
             // This ensures [catalog].[__EFMigrationsHistory] is used.
-            builder.Services.AddModuleDbContext<TemplateApi.Business.Data.CatalogDbContext>("catalog");
+            builder.Services.AddModuleDbContext<TemplateApi.Business.Data.CatalogDbContext>(ModuleSchemas.Catalog);
             // b. Future Module (Schema: ordering)
-            // builder.Services.AddModuleDbContext<OrderingDbContext>("ordering");
+            // builder.Services.AddModuleDbContext<OrderingDbContext>(ModuleSchemas.Ordering);
 
             #endregion
 

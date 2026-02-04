@@ -6,6 +6,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Shared.Telemetry.Options;
+using System.Security.Claims;
 namespace Shared.Telemetry.Builder
 {
     public static class TelemetryExtensions
@@ -43,7 +44,28 @@ namespace Shared.Telemetry.Builder
                 .WithTracing(tracing =>
                 {
                     tracing
-                        .AddAspNetCoreInstrumentation()
+                        .AddAspNetCoreInstrumentation(options =>
+                        {
+                            options.EnrichWithHttpRequest = (activity, httpRequest) =>
+                            {
+                                // 1. Safe access to the user
+                                var user = httpRequest.HttpContext.User;
+
+                                // 2. Extract the ID (standard ClaimTypes.NameIdentifier)
+                                var userId = user?.FindFirstValue(ClaimTypes.NameIdentifier)
+                                             ?? user?.Identity?.Name;
+
+                                // 3. Manually tag the current Activity
+                                if (!string.IsNullOrEmpty(userId))
+                                {
+                                    // "enduser.id" is the Semantic Convention constant
+                                    activity.SetTag("enduser.id", userId);
+
+                                    // Baggage = Propagated to child spans/services automatically
+                                    OpenTelemetry.Baggage.SetBaggage("enduser.id", userId);
+                                }
+                            };
+                        })
                         .AddHttpClientInstrumentation();
 
                     foreach (var source in options.ActivitySources)

@@ -3,7 +3,7 @@
 namespace Shared.Workers.Audit.Services
 {
     public abstract class AuditedPeriodicService(
-        ILogger logger,
+        ILogger<AuditedPeriodicService> logger,
         string workerName) : AuditedBackgroundService(logger, workerName)
     {
         protected abstract TimeSpan Period { get; }

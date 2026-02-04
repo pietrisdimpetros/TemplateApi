@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace Shared.Workers.Audit.Services
 {
     // Update Primary Constructor to accept workerName
-    public abstract class AuditedBackgroundService(ILogger logger, string? workerName = null) : BackgroundService
+    public abstract class AuditedBackgroundService(ILogger<AuditedBackgroundService> logger, string? workerName = null) : BackgroundService
     {
         // 1. Define the Missing Constant
         public const string ActivitySourceName = "Shared.Workers.Audit";
@@ -14,32 +14,47 @@ namespace Shared.Workers.Audit.Services
         protected string WorkerName { get; } = workerName ?? "UnknownWorker";
 
         protected abstract Task ExecuteIterationAsync(CancellationToken stoppingToken);
-
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            try
-            {
-                logger.LogInformation("Starting audited background service: {Service}", GetType().Name);
-            }
-            catch (Exception ex)
-            {
-                logger.LogCritical(ex, "Failed to start background service: {Service}", GetType().Name);
-                throw;
-            }
+            logger.LogInformation("Starting audited background service: {Service}", GetType().Name);
+
+            // 1. Track consecutive errors for Backoff
+            int consecutiveErrors = 0;
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                // 2. Measure uptime to determine stability
+                var uptime = Stopwatch.StartNew();
+
                 try
                 {
                     await ExecuteIterationAsync(stoppingToken);
+                    // If the iteration method returns normally, we assume the work is done (for non-infinite loops).
                     break;
                 }
                 catch (OperationCanceledException)
                 {
+                    // Graceful shutdown
                     break;
                 }
                 catch (Exception ex)
                 {
+                    uptime.Stop();
+
+                    // 3. Stability Check: If it ran for > 2 minutes, it's not a startup crash. Reset backoff.
+                    if (uptime.Elapsed > TimeSpan.FromMinutes(2))
+                    {
+                        consecutiveErrors = 0;
+                    }
+
+                    consecutiveErrors++;
+
+                    // 4. Calculate Exponential Backoff (Base 2s, Max 5m)
+                    var delaySeconds = Math.Min(300, Math.Pow(2, consecutiveErrors));
+                    // 5. Add Jitter (0-1000ms) to prevent thundering herd
+                    var jitter = Random.Shared.Next(0, 1000);
+                    var delay = TimeSpan.FromSeconds(delaySeconds).Add(TimeSpan.FromMilliseconds(jitter));
+
                     var problem = new
                     {
                         Type = ex.GetType().FullName,
@@ -47,17 +62,16 @@ namespace Shared.Workers.Audit.Services
                         Status = 500,
                         Detail = ex.Message,
                         Instance = GetType().Name,
-                        Timestamp = DateTimeOffset.UtcNow,
-                        Machine = Environment.MachineName,
+                        RetryCount = consecutiveErrors,
+                        NextRetryIn = delay,
                         TraceId = Activity.Current?.TraceId.ToString()
                     };
 
-                    logger.LogError(ex, "Worker Operation Failed: {@Problem}", problem);
-                    logger.LogWarning("Pausing service {Service} for 1 minute due to error.", GetType().Name);
+                    logger.LogError(ex, "Worker Failed. Retrying in {Delay}s. Context: {@Problem}", delay.TotalSeconds, problem);
 
                     try
                     {
-                        await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                        await Task.Delay(delay, stoppingToken);
                     }
                     catch (OperationCanceledException)
                     {
@@ -68,11 +82,9 @@ namespace Shared.Workers.Audit.Services
 
             logger.LogInformation("Audited background service stopped: {Service}", GetType().Name);
         }
-
         // 3. Define the Missing Helper Method
-        protected async Task ExecuteTraceableAsync(string activityName, Func<CancellationToken, Task> action, CancellationToken stoppingToken)
+        protected static async Task ExecuteTraceableAsync(string activityName, Func<CancellationToken, Task> action, CancellationToken stoppingToken)
         {
-            // Simple wrapper to support the logic in AuditedPeriodicService
             using var activity = new ActivitySource(ActivitySourceName).StartActivity(activityName);
             await action(stoppingToken);
         }

@@ -13,6 +13,8 @@ namespace TemplateApi.Business.Entities
 
         public decimal Price { get; set; }
 
+        public bool? IsDraft { get; set; }
+
         // --- Audit Fields (Handled by AuditingInterceptor) ---
         public DateTimeOffset CreatedAt { get; set; }
         public string? CreatedBy { get; set; }

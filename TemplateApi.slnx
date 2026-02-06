@@ -2,6 +2,7 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
   </Folder>
+  <Project Path="Shared.Authorization/Shared.Authorization.csproj" Id="7321d711-33a2-4ee5-8723-9f21b766e2a2" />
   <Project Path="Shared.Caching/Shared.Caching.csproj" />
   <Project Path="Shared.Composition/Shared.Composition.csproj" />
   <Project Path="Shared.Data/Shared.Data.csproj" Id="17483c13-5f44-4d5d-944e-267fe84f3fd2" />

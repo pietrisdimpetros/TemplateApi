@@ -1,8 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Shared.Workers.Audit.Services;
-using TemplateApi.Business.Constants;
+using Shared.Workers.Audit.Services; // Ensure the entity namespace is imported if different
 using TemplateApi.Business.Data;
 
 namespace TemplateApi.Business.Workers.Audit
@@ -39,16 +38,13 @@ namespace TemplateApi.Business.Workers.Audit
 
             do
             {
-                var sql = $"""
-                    DELETE TOP ({BatchSize}) 
-                    FROM [{AuditConstants.Schema}].[{AuditConstants.Table}] 
-                    WHERE [Timestamp] < @p0
-                    """;
-
-                rowsAffected = await dbContext.Database.ExecuteSqlRawAsync(
-                    sql,
-                    [cutoffDate],
-                    stoppingToken);
+                // FIX: Use modern ExecuteDeleteAsync instead of raw SQL.
+                // This is safer, faster, and database agnostic (works on Postgres/SQLServer etc).
+                // Note: Assumes 'AuditLogs' is the DbSet property name in AuditDbContext.
+                rowsAffected = await dbContext.Logs
+                    .Where(x => x.Timestamp < cutoffDate)
+                    .Take(BatchSize)
+                    .ExecuteDeleteAsync(stoppingToken);
 
                 totalDeleted += rowsAffected;
 

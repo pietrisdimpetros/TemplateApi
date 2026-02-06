@@ -1,12 +1,12 @@
 using Shared.Composition.Builder;
 using Shared.Composition.Options;
 using Shared.Health.Tags;
-using Shared.Resilience.Options;
-using Shared.Serialization.Options;
-using Shared.Telemetry.Options;
+using TemplateApi.Business.Builder;
 using TemplateApi.Business.Constants;
+using TemplateApi.Business.Data;
 using TemplateApi.Business.Health.Checks;
-using TemplateApi.Serialization;
+using TemplateApi.Business.Workers.Audit;
+using TemplateApi.Configuration;
 
 namespace TemplateApi
 {
@@ -17,132 +17,63 @@ namespace TemplateApi
             var builder = WebApplication.CreateBuilder(args);
 
             // ============================================================================
-            // 1. INFRASTRUCTURE REGISTRATION
+            // 1. PREPARE CONFIGURATION
+            // ============================================================================
+            // We build the options object MANUALLY first.
+            // This ensures Installers see the final values immediately.
+            #region Configuration
+            var infraOptions = new SharedInfrastructureOptions();
+            // A. Bind from appsettings.json
+            builder.Configuration.GetSection("Infrastructure").Bind(infraOptions);
+            // B. Apply Code-Based Logic (Dev/Prod defaults)
+            var configurator = new ConfigureSharedInfrastructureOptions(builder.Environment, builder.Configuration);
+            configurator.Configure(infraOptions);
+            #endregion
+
+            // ============================================================================
+            // 2. REGISTER INFRASTRUCTURE
             // ============================================================================
             builder.Services.AddInfrastructure(
-            options =>
-            {
-                // ------------------------------------------------------------------------
-                // GLOBAL CONFIGURATION BINDING
-                // ------------------------------------------------------------------------
-                // Binds the "Infrastructure" section from appsettings.json to the options object.
-                // This replaces the manual "new Option { ... }" assignments.
-                builder.Services.AddOptions<SharedInfrastructureOptions>()
-                                .BindConfiguration("Infrastructure") // Uses source generators in .NET 8+
-                                .ValidateDataAnnotations() // Enforces [Required] attributes on Options classes
-                                .ValidateOnStart(); // Fails startup if config is invalid
-
-                // --- 1. Logging ---
-                // JSON Console + Enrichment (MachineName, Environment)
-                if (options.Logging != null)
+                infraOptions,
+                healthBuilder =>
                 {
-                    // Force detailed output if in Development, regardless of config
-                    if (builder.Environment.IsDevelopment())
+                    healthBuilder.AddCheck<AuditLogHealthCheck>("audit_log_storage", tags: [HealthCheckTags.Ready]);
+                    healthBuilder.AddCheck<GraphFunctionalityCheck>("graph_functional_test", tags: [HealthCheckTags.Ready]);
+                    healthBuilder.AddCheck<DemoCheck>("demo_test", tags: [HealthCheckTags.Demo, HealthCheckTags.Ready]);
+
+                    if (!string.IsNullOrEmpty(infraOptions.Database?.ConnectionString))
                     {
-                        options.Logging.EnableDetailedOutput = true;
+                        healthBuilder.AddSqlServer(
+                           connectionString: infraOptions.Database.ConnectionString,
+                           name: "sql_server",
+                           tags: [HealthCheckTags.Ready]
+                       );
                     }
-                }
-
-                // --- 2. Telemetry ---
-                // Metrics/Tracing via OpenTelemetry
-                // (Configuration is fully handled via appsettings.json binding)
-                // Fallback defaults if config is missing
-                options.Telemetry ??= new TelemetryOptions
-                {
-                    ServiceName = "ReferenceApi",
-                    ServiceVersion = "1.0.0-beta",
-                    UseAzureMonitor = false,
-                    OtlpEndpoint = "http://localhost:4317"
-                };
-
-                // --- 3. Caching ---
-                // Redis Connection
-                if (options.Caching != null)
-                {
-                    // Fallback: If ConnectionString is missing in Infrastructure config, 
-                    // try the root "ConnectionStrings:Redis" section.
-                    if (string.IsNullOrEmpty(options.Caching.ConnectionString))
-                    {
-                        options.Caching.ConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
-                    }
-                }
-
-                // --- 4. Security ---
-                // JWT Bearer Auth + CORS
-                // (Configuration is fully handled via appsettings.json binding)
-
-                // --- 5. Networking ---
-                // "ResilientClient" with Retries, Circuit Breaker, Timeout
-                if (options.Networking != null)
-                {
-                    // Force ignoring SSL errors in Development for local testing
-                    if (builder.Environment.IsDevelopment())
-                    {
-                        options.Networking.IgnoreSslErrors = true;
-                    }
-                }
-
-                // --- 6. OpenAPI ---
-                // Swagger Documentation
-                // (Configuration is fully handled via appsettings.json binding)
-
-                // --- 7. Serialization ---
-                // System.Text.Json (CamelCase, IgnoreNull)
-                // Ensure defaults are present if config is missing
-                options.Serialization ??= new SerializationOptions();
-                options.Serialization.TypeInfoResolverChain.Add(ApiJsonContext.Default);
-                // --- 8. Health Checks ---
-                // Probes for K8s / Load Balancers
-                // (Configuration is fully handled via appsettings.json binding)
-
-                // --- 9. Error Handling ---
-                // Global ProblemDetails
-                if (options.ErrorHandling != null)
-                {
-                    // Force StackTrace inclusion in Development
-                    if (builder.Environment.IsDevelopment())
-                    {
-                        options.ErrorHandling.IncludeStackTrace = true;
-                    }
-                }
-
-                // 10. Resilience (Utility options usually used manually, but populated for completeness)
-                options.Resilience ??= new ResilienceOptions();
-            },
-            healthBuilder =>
-            {
-                // Register your BL checks here
-                healthBuilder.AddCheck<GraphFunctionalityCheck>("graph_functional_test", tags: [HealthCheckTags.Ready]);
-                healthBuilder.AddCheck<DemoCheck>("demo_test", tags: [HealthCheckTags.Demo, HealthCheckTags.Ready]);
-                builder.Services.AddHealthChecks().AddCheck<AuditLogHealthCheck>("audit_log_storage", tags: [HealthCheckTags.Ready]);
-
-                // Read from your Infrastructure config instead of default connection strings
-                healthBuilder.AddSqlServer(
-                    connectionString: builder.Configuration["Infrastructure:Database:ConnectionString"]!,
-                    name: "sql_server",
-                    tags: [HealthCheckTags.Ready]
-                );
-            });
-
+                });
 
             // ============================================================================
-            // 2. DATABASE MODULES
+            // 3. REGISTER BUSINESS LOGIC
+            // ============================================================================
+            builder.Services.AddBusinessLogic();
+
+            // ============================================================================
+            // 4. DATABASE MODULES
             // ============================================================================
             #region Module DbContexts
-            // a. Register Catalog Module (Schema: catalog)
-            // This ensures [catalog].[__EFMigrationsHistory] is used.
-            builder.Services.AddModuleDbContext<TemplateApi.Business.Data.CatalogDbContext>(ModuleSchemas.Catalog);
-            // b. Future Module (Schema: ordering)
-            // builder.Services.AddModuleDbContext<OrderingDbContext>(ModuleSchemas.Ordering);
-
+            builder.Services.AddModuleDbContext<CatalogDbContext>(ModuleSchemas.Catalog);
             #endregion
 
+            // ============================================================================
+            // 5. CUSTOM WORKERS
+            // ============================================================================
             #region Custom Workers
-            builder.Services.AddHostedService<TemplateApi.Business.Workers.Audit.DataCleanupWorker>();
+            builder.Services.AddHostedService<DataCleanupWorker>();
             #endregion
 
-            #region Post Configure
-
+            // ============================================================================
+            // 6. POST-CONFIGURATION 
+            // Post-configure specifically for the SQL Logger constants
+            // =============================================================================
             builder.Services.PostConfigure<SharedInfrastructureOptions>(options =>
             {
                 if (options.SqlLogging != null)
@@ -152,18 +83,29 @@ namespace TemplateApi
                 }
             });
 
-            #endregion
-            // Add Controllers
+            // ============================================================================
+            // 7. OTHER SERVICES (Controllers, etc.)
+            // ============================================================================
             builder.Services.AddControllers();
 
+            // ============================================================================
+            // 8. BUILD THE APP
+            // ============================================================================
             var app = builder.Build();
 
             // ============================================================================
-            // 2. MIDDLEWARE PIPELINE
+            // 9.MIDDLEWARE PIPELINE
             // ============================================================================
-            // It enforces the correct order (Error -> Auth -> Health).
             app.UseSharedInfrastructure();
+
+            // ====================================================================
+            // 10. MAP ENDPOINTS
+            // ============================================================================
             app.MapControllers();
+
+            // ============================================================================
+            // 11. RUN THE APP
+            // ============================================================================
             app.Run();
         }
     }

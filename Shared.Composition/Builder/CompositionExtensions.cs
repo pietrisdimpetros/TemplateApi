@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Shared.Composition.Installers;
 using Shared.Composition.Options;
 using Shared.Data.Abstractions;
@@ -24,6 +25,7 @@ namespace Shared.Composition.Builder
             // 3. Traffic & Security
             new IdempotencyInstaller(),    
             new SecurityInstaller(),
+            new AuthorizationInstaller(),
             new RateLimitingInstaller(),
             new WebPerformanceInstaller(),
 
@@ -51,23 +53,20 @@ namespace Shared.Composition.Builder
         /// Bootstraps the Shared Infrastructure using the Installer Pattern.
         /// </summary>
         public static IServiceCollection AddInfrastructure(
-            this IServiceCollection services,
-            Action<SharedInfrastructureOptions> configure,
-            Action<IHealthChecksBuilder>? extraHealthChecks = null)
+             this IServiceCollection services,
+             SharedInfrastructureOptions options, 
+             Action<IHealthChecksBuilder>? extraHealthChecks = null)
         {
-            // 1. Evaluate and Register Options
-            var rootOptions = new SharedInfrastructureOptions();
-            configure(rootOptions);
-            services.AddSingleton(rootOptions);
+            // 1. Register the options instance as a Singleton for the rest of the app to use
+            services.AddSingleton(options);
 
-            // 2. Execute Installers
+            // 2. Execute Installers using the PRE-CONFIGURED values
             foreach (var installer in Installers)
             {
-                // Special handling for HealthInstaller which accepts the extra checks callback
                 if (installer is HealthInstaller healthInstaller)
-                    healthInstaller.Install(services, rootOptions, extraHealthChecks);
+                    healthInstaller.Install(services, options, extraHealthChecks);
                 else
-                    installer.Install(services, rootOptions);
+                    installer.Install(services, options);
             }
 
             return services;

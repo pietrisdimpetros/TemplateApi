@@ -14,6 +14,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\Shared.Authorization\Shared.Authorization.csproj" />
 		<ProjectReference Include="..\Shared.Caching\Shared.Caching.csproj" />
 		<ProjectReference Include="..\Shared.ErrorHandling\Shared.ErrorHandling.csproj" />
 		<ProjectReference Include="..\Shared.Health\Shared.Health.csproj" />

@@ -7,7 +7,6 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Shared.Telemetry.Options;
 using System.Security.Claims;
-using Shared.Telemetry.Metrics;
 namespace Shared.Telemetry.Builder
 {
     public static class TelemetryExtensions
@@ -31,7 +30,6 @@ namespace Shared.Telemetry.Builder
             configure(options);
 
             services.AddSingleton(options);
-            services.AddSingleton<AppMetrics>();
             // 2. Build the Resource Definition (Service Name/Version)
             Action<ResourceBuilder> configureResource = r => r
                 .AddService(

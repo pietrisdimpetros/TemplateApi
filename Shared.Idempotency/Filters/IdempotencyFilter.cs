@@ -123,10 +123,10 @@ namespace Shared.Idempotency.Filters
                 // ---------------------------------------------------------------------------
                 // 6. CACHE RESULT (If successful)
                 // ---------------------------------------------------------------------------
-                // Only cache successful or business-logic failures (2xx, 4xx). 
-                // Do not cache 500s, so the client can retry safely.
+                // Only cache successful (2xx). 
+                // Do not cache failures, so the client can retry safely.
                 if (executedContext.Result is ObjectResult objectResult &&
-                    objectResult.StatusCode is >= 200 and < 500) // Updated to include 4xx
+                    objectResult.StatusCode is >= 200 and <= 299) 
                 {
                     var model = new IdempotencyModel(objectResult.StatusCode ?? 200, objectResult.Value);
                     var serialized = JsonSerializer.Serialize(model);

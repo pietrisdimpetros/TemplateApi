@@ -27,7 +27,10 @@ namespace TemplateApi
                 // ------------------------------------------------------------------------
                 // Binds the "Infrastructure" section from appsettings.json to the options object.
                 // This replaces the manual "new Option { ... }" assignments.
-                builder.Configuration.GetSection("Infrastructure").Bind(options);
+                builder.Services.AddOptions<SharedInfrastructureOptions>()
+                                .BindConfiguration("Infrastructure") // Uses source generators in .NET 8+
+                                .ValidateDataAnnotations() // Enforces [Required] attributes on Options classes
+                                .ValidateOnStart(); // Fails startup if config is invalid
 
                 // --- 1. Logging ---
                 // JSON Console + Enrichment (MachineName, Environment)

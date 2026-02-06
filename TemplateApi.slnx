@@ -1,6 +1,11 @@
 <Solution>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
+    <File Path="config.nsdepcop" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="README.md" />
+    <File Path="wiki.docx" />
   </Folder>
   <Project Path="Shared.Authorization/Shared.Authorization.csproj" Id="7321d711-33a2-4ee5-8723-9f21b766e2a2" />
   <Project Path="Shared.Caching/Shared.Caching.csproj" />

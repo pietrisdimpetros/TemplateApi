@@ -1,0 +1,6 @@
+<Project>
+  <ItemGroup>
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)config.nsdepcop" 
+                     Condition="Exists('$(MSBuildThisFileDirectory)config.nsdepcop')" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,40 @@
+<NsDepCopConfig IsEnabled="true" CodeIssueKind="Error">
+
+	<Allowed From="*" To="System.*" />
+	<Allowed From="*" To="Microsoft.*" />
+	<Allowed From="*" To="Azure.*" />
+	<Allowed From="*" To="OpenTelemetry.*" />
+	<Allowed From="*" To="Polly.*" />
+	<Allowed From="*" To="StackExchange.*" />
+	<Allowed From="*" To="Swashbuckle.*" />
+	<Allowed From="*" To="HealthChecks.*" />
+	<Allowed From="*" To="FluentValidation.*" />
+	<Allowed From="*" To="MediatR.*" />
+
+	<Allowed From="TemplateApi" To="TemplateApi.Business" />
+
+	<Allowed From="TemplateApi" To="Shared.Composition" />
+
+	<Allowed From="TemplateApi" To="Shared.*" />
+
+	<Allowed From="Shared.Composition" To="TemplateApi.Business" />
+
+	<Allowed From="Shared.Composition" To="Shared.*" />
+
+	<Allowed From="TemplateApi.Business" To="Shared.*" />
+
+	<Disallowed From="TemplateApi.Business" To="TemplateApi" />
+
+	<Disallowed From="TemplateApi.Business" To="Shared.Composition" />
+
+	<Allowed From="Shared.*" To="Shared.*" />
+
+	<Allowed From="Shared.Workers.*" To="Shared.Data" />
+	<Allowed From="Shared.Workers.*" To="Shared.Logging" />
+
+	<Disallowed From="Shared.*" To="TemplateApi.Business" />
+	<Disallowed From="Shared.*" To="TemplateApi" />
+
+	<Disallowed From="Shared.*" To="Shared.Composition" />
+
+</NsDepCopConfig>
